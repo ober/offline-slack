@@ -28,6 +28,18 @@
 (export #t)
 
 (def version "0.01")
+(def nil '#(nil))
+(def tmax 8)
+(def use-write-backs #t)
+(def wb (db-init))
+
+(def (def-num num)
+  (if (string? num)
+    (string->number num)
+    num))
+
+
+
 ;;; Your library support code
 ;;; ...
 
@@ -38,13 +50,13 @@
      (and (equal? (path-extension filename) ".json")
 	        (not (equal? (path-strip-directory filename) ".json"))))))
 
-(def (load-ct dir)
+(def (load-slack dir)
   "Entry point for processing cloudtrail files"
   (let (2G (expt 2 31))
     (when (< (##get-min-heap) 2G)
       (##set-min-heap! 2G)))
 
-  (dp (format ">-- load-ct: ~a" dir))
+  (dp (format ">-- load-slack: ~a" dir))
   ;;(spawn watch-heap!)
   (let* ((count 0)
 	       (ct-files (find-ct-files "."))
@@ -94,7 +106,7 @@
       (dp (memory-usage))
       (call-with-input-file file
 	      (lambda (file-input)
-	        (let ((mytables (load-ct-file file-input)))
+	        (let ((mytables (load-slack-file file-input)))
             (for-each
 	            (lambda (row)
                 (set! count (+ count 1))
@@ -170,5 +182,44 @@
 
 (def (repairdb)
   "Repair the db"
-  (let ((db-dir (or (getenv "kunabidb" #f) (format "~a/kunabi-db/" (user-info-home (user-info (user-name)))))))
+  (let ((db-dir (or (getenv "osdb" #f) (format "~a/os-db/" (user-info-home (user-info (user-name)))))))
     (leveldb-repair-db (format "~a/records" db-dir))))
+
+(def (process-row row)
+  (dp (format "process-row: row: ~a" (hash->list row)))
+  (let-hash row
+    (dp (hash->string row))
+    (let*
+	      ((user (find-user .?userIdentity))
+         (req-id (or .?requestID .?eventID))
+	       (epoch (date->epoch2 .?eventTime))
+	       (h (hash
+	           ;;(ar .?awsRegion)
+	           (ec .?errorCode)
+	           (em .?errorMessage)
+	           (eid .?eventID)
+	           (en  .?eventName)
+	           (es .?eventSource)
+	           (time .?eventTime)
+	           (et .?eventType)
+	           (rid .?recipientAccountId)
+	           (rp (print-rp .?requestParameters))
+	           (user user)
+	           (re .?responseElements)
+	           (sia .?sourceIPAddress)
+	           (ua .?userAgent)
+	           ;;(ui (hash-it .?userIdentity))
+	           )))
+
+      (unless (getenv "osro" #f)
+        (set! write-back-count (+ write-back-count 1))
+        (db-batch req-id h)
+        (when (string=? user "")
+          (displayln "Error: missing user: " user))
+        (when (string? user)
+	        (db-batch (format "u#~a#~a" user epoch) req-id))
+        (when (string? .?eventName)
+	        (db-batch (format "en#~a#~a" .?eventName epoch) req-id))
+        (when (string? .?errorCode)
+	        (db-batch (format "ec#~a#~a" .errorCode epoch) req-id))
+        ))))
