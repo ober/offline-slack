@@ -29,16 +29,20 @@
 
 (def version "0.01")
 (def nil '#(nil))
-(def tmax 8)
 (def use-write-backs #t)
 (def wb (db-init))
+
+(def write-back-count 0)
+(def max-wb-size (def-num (getenv "k_max_wb" 100000)))
+(def tmax (def-num (getenv "tmax" 12)))
+(def indices-hash (make-hash-table))
 
 (def (def-num num)
   (if (string? num)
     (string->number num)
     num))
 
-
+(parameterize ((read-json-key-as-symbol? #t)))
 
 ;;; Your library support code
 ;;; ...
@@ -48,7 +52,7 @@
    dir
    (lambda (filename)
      (and (equal? (path-extension filename) ".json")
-	        (not (equal? (path-strip-directory filename) ".json"))))))
+	      (not (equal? (path-strip-directory filename) ".json"))))))
 
 (def (load-slack dir)
   "Entry point for processing cloudtrail files"
@@ -57,19 +61,18 @@
       (##set-min-heap! 2G)))
 
   (dp (format ">-- load-slack: ~a" dir))
-  ;;(spawn watch-heap!)
   (let* ((count 0)
-	       (ct-files (find-ct-files "."))
+	     (slack-files (find-slack-files "."))
          (pool []))
-    (for (file ct-files)
+    (for (file slack-files)
       (cond-expand
         (gerbil-smp
          (while (< tmax (length (all-threads)))
-	         (thread-yield!))
-         (let ((thread (spawn (lambda () (read-ct-file file)))))
-	         (set! pool (cons thread pool))))
+	       (thread-yield!))
+         (let ((thread (spawn (lambda () (read-slack-file file)))))
+	       (set! pool (cons thread pool))))
         (else
-         (read-ct-file file)))
+         (read-slack-file file)))
       (flush-all?)
       (set! count 0))
     (cond-expand (gerbil-smp (for-each thread-join! pool)))
@@ -78,40 +81,37 @@
 
 (def (file-already-processed? file)
   (dp "in file-already-processed?")
-  (let* ((short (get-short file))
-         (seen (db-key? (format "F-~a" short))))
+  (let ((seen (db-key? (format "F-~a" file))))
     seen))
 
 (def (mark-file-processed file)
   (dp "in mark-file-processed")
-  (let ((short (get-short file)))
-    (format "marking ~A~%" file)
-    (db-batch (format "F-~a" short) "t")))
+  (format "marking ~A~%" file)
+  (db-batch (format "F-~a" file) "t"))
+
+(def (get-channel-name file)
+  (let* ((content (open-input-string file))
+         (json (read-json content))
+         (name (let-hash json .?name)))
+    name))
 
 (def (load-slack-file file)
-  (parameterize ((read-json-key-as-symbol? #t))
-    (hash-ref
-     (read-json
-      (open-input-string
-       (utf8->string
-        (uncompress file))))
-     'Records)))
+    (hash-ref (read-json (open-input-string file)) 'messages)))
 
 (def (read-slack-file file)
   (ensure-db)
-  (dp (format "read-slack-file: ~a" file))
   (unless (file-already-processed? file)
     (let ((btime (time->seconds (current-time)))
-	        (count 0))
-      (dp (memory-usage))
+	      (count 0))
       (call-with-input-file file
-	      (lambda (file-input)
-	        (let ((mytables (load-slack-file file-input)))
+	    (lambda (file-input)
+          (let ((messages (load-slack-file file-input))
+                (channel (get-channel-name file-input)))
             (for-each
-	            (lambda (row)
+	          (lambda (msg)
                 (set! count (+ count 1))
-                (process-row row))
-	            mytables))
+                (process-msg channel msg))
+	          messages))
           (mark-file-processed file)))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
@@ -120,8 +120,8 @@
          " size: " count
          " delta: " delta
          " threads: " (length (all-threads))
-	       " file: " file
-	       )))))
+	     " file: " file
+	     )))))
 
 (def (ensure-db)
   (unless db
@@ -131,19 +131,19 @@
 
 (def (db-open)
   (dp ">-- db-open")
-  (let ((db-dir (or (getenv "slackdb" #f) (format "~a/slack-db/" (user-info-home (user-info (user-name)))))))
+  (let ((db-dir (or (getenv "slackdb" #f) (format "~a/slackdb/" (user-info-home (user-info (user-name)))))))
     (dp (format "db-dir is ~a" db-dir))
     (unless (file-exists? db-dir)
       (create-directory* db-dir))
     (let ((location (format "~a/records" db-dir)))
       (leveldb-open location (leveldb-options
-			                        paranoid-checks: #f
-			                        max-open-files: (def-num (getenv "k_max_files" 500000))
-			                        bloom-filter-bits: (def-num (getenv "k_bloom_bits" #f))
-			                        compression: #t
-			                        block-size: (def-num (getenv "k_block_size" #f))
-			                        write-buffer-size: (def-num (getenv "k_write_buffer" (* 102400 1024 16)))
-			                        lru-cache-capacity: (def-num (getenv "k_lru_cache" 10000)))))))
+			                  paranoid-checks: #f
+			                  max-open-files: (def-num (getenv "k_max_files" 500000))
+			                  bloom-filter-bits: (def-num (getenv "k_bloom_bits" #f))
+			                  compression: #t
+			                  block-size: (def-num (getenv "k_block_size" #f))
+			                  write-buffer-size: (def-num (getenv "k_write_buffer" (* 102400 1024 16)))
+			                  lru-cache-capacity: (def-num (getenv "k_lru_cache" 10000)))))))
 
 (def (db-get key)
   (dp (format "db-get: ~a" key))
@@ -185,41 +185,41 @@
   (let ((db-dir (or (getenv "osdb" #f) (format "~a/os-db/" (user-info-home (user-info (user-name)))))))
     (leveldb-repair-db (format "~a/records" db-dir))))
 
-(def (process-row row)
-  (dp (format "process-row: row: ~a" (hash->list row)))
-  (let-hash row
-    (dp (hash->string row))
-    (let*
-	      ((user (find-user .?userIdentity))
-         (req-id (or .?requestID .?eventID))
-	       (epoch (date->epoch2 .?eventTime))
-	       (h (hash
-	           ;;(ar .?awsRegion)
-	           (ec .?errorCode)
-	           (em .?errorMessage)
-	           (eid .?eventID)
-	           (en  .?eventName)
-	           (es .?eventSource)
-	           (time .?eventTime)
-	           (et .?eventType)
-	           (rid .?recipientAccountId)
-	           (rp (print-rp .?requestParameters))
-	           (user user)
-	           (re .?responseElements)
-	           (sia .?sourceIPAddress)
-	           (ua .?userAgent)
-	           ;;(ui (hash-it .?userIdentity))
-	           )))
+(def (process-msg channel msg)
+  (if (hash-table? msg)
+    (let-hash msg
+      (let ((h (hash
+                (text .?text)))
+            (req-id (format "~a#~a#~a" .?channel .?ts .?user )))
 
-      (unless (getenv "osro" #f)
-        (set! write-back-count (+ write-back-count 1))
+        ;; (unless (getenv "osro" #f)
+        ;;   (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
-        (when (string=? user "")
-          (displayln "Error: missing user: " user))
-        (when (string? user)
-	        (db-batch (format "u#~a#~a" user epoch) req-id))
-        (when (string? .?eventName)
-	        (db-batch (format "en#~a#~a" .?eventName epoch) req-id))
-        (when (string? .?errorCode)
-	        (db-batch (format "ec#~a#~a" .errorCode epoch) req-id))
-        ))))
+        ;;   (when (string=? user "")
+        ;;     (displayln "Error: missing user: " user))
+        ;;   (when (string? user)
+	    ;;     (db-batch (format "u#~a#~a" user epoch) req-id))
+        ;;   (when (string? .?eventName)
+	    ;;     (db-batch (format "en#~a#~a" .?eventName epoch) req-id))
+        ;;   (when (string? .?errorCode)
+	    ;;     (db-batch (format "ec#~a#~a" .errorCode epoch) req-id)))
+          ))))
+
+(def (db-batch key value)
+  (unless (string? key) (dp (format "key: ~a val: ~a" (##type-id key) (##type-id value))))
+  (leveldb-writebatch-put wb key (marshal-value value)))
+
+(def (db-put key value)
+  (dp (format "<----> db-put: key: ~a val: ~a" key value))
+  (leveldb-put db key (marshal-value value)))
+
+(def (flush-all?)
+  (dp (format "write-back-count && max-wb-size ~a ~a" write-back-count max-wb-size))
+  (when (> write-back-count max-wb-size)
+    (displayln "writing.... " write-back-count)
+    (let ((old wb))
+      (spawn
+       (lambda ()
+	       (leveldb-write db old)))
+      (set! wb (leveldb-writebatch))
+      (set! write-back-count 0))))
