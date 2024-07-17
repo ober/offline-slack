@@ -27,11 +27,12 @@
 
 ;; build manifest; generated during the build
 ;; defines version-manifest which you can use for exact versioning
-(include "../manifest.ss")
+;;(include "../manifest.ss")
+(def program-name "kunabi")
 
 (def (main . args)
-  (def ct
-    (command 'ct help: "Load all files in dir. "
+  (def load
+    (command 'load help: "Load all files in dir. "
 	     (argument 'directory help: "Directory where the Slack files reside")))
 
   (call-with-getopt process-args args
@@ -43,4 +44,4 @@
   (let-hash opt
     (case cmd
       ((load)
-       (load .directory)))))
+       (load-slack .directory)))))
