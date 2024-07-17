@@ -42,7 +42,7 @@
     (string->number num)
     num))
 
-(parameterize ((read-json-key-as-symbol? #t)))
+
 
 ;;; Your library support code
 ;;; ...
@@ -56,6 +56,7 @@
 
 (def (load-slack dir)
   "Entry point for processing cloudtrail files"
+  (parameterize ((read-json-key-as-symbol? #t))
   (let (2G (expt 2 31))
     (when (< (##get-min-heap) 2G)
       (##set-min-heap! 2G)))
@@ -77,7 +78,7 @@
       (set! count 0))
     (cond-expand (gerbil-smp (for-each thread-join! pool)))
     (db-write)
-    (db-close)))
+    (db-close))))
 
 (def (file-already-processed? file)
   (dp "in file-already-processed?")
@@ -96,32 +97,32 @@
     name))
 
 (def (load-slack-file file)
-    (hash-ref (read-json (open-input-string file)) 'messages)))
+  (hash-ref (read-json (open-input-string file)) 'messages))
 
 (def (read-slack-file file)
-  (ensure-db)
-  (unless (file-already-processed? file)
-    (let ((btime (time->seconds (current-time)))
-	      (count 0))
-      (call-with-input-file file
-	    (lambda (file-input)
-          (let ((messages (load-slack-file file-input))
-                (channel (get-channel-name file-input)))
-            (for-each
-	          (lambda (msg)
-                (set! count (+ count 1))
-                (process-msg channel msg))
-	          messages))
-          (mark-file-processed file)))
+(ensure-db)
+(unless (file-already-processed? file)
+  (let ((btime (time->seconds (current-time)))
+	    (count 0))
+    (call-with-input-file file
+	  (lambda (file-input)
+        (let ((messages (load-slack-file file-input))
+              (channel (get-channel-name file-input)))
+          (for-each
+	        (lambda (msg)
+              (set! count (+ count 1))
+              (process-msg channel msg))
+	        messages))
+        (mark-file-processed file)))
 
-      (let ((delta (- (time->seconds (current-time)) btime)))
-        (displayln
-         "rps: " (float->int (/ count delta ))
-         " size: " count
-         " delta: " delta
-         " threads: " (length (all-threads))
-	     " file: " file
-	     )))))
+    (let ((delta (- (time->seconds (current-time)) btime)))
+      (displayln
+       "rps: " (float->int (/ count delta ))
+       " size: " count
+       " delta: " delta
+       " threads: " (length (all-threads))
+	   " file: " file
+	   )))))
 
 (def (ensure-db)
   (unless db
@@ -203,7 +204,7 @@
 	    ;;     (db-batch (format "en#~a#~a" .?eventName epoch) req-id))
         ;;   (when (string? .?errorCode)
 	    ;;     (db-batch (format "ec#~a#~a" .errorCode epoch) req-id)))
-          ))))
+        ))))
 
 (def (db-batch key value)
   (unless (string? key) (dp (format "key: ~a val: ~a" (##type-id key) (##type-id value))))
@@ -220,6 +221,6 @@
     (let ((old wb))
       (spawn
        (lambda ()
-	       (leveldb-write db old)))
+	     (leveldb-write db old)))
       (set! wb (leveldb-writebatch))
       (set! write-back-count 0))))
