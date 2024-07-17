@@ -1,7 +1,27 @@
 ;;; -*- Gerbil -*-
 (import :std/error
-        :std/sugar
+        :clan/db/leveldb
+        :clan/text/yaml
+        :gerbil/gambit
+        :ober/oberlib
+        :std/actor
         :std/cli/getopt
+        :std/debug/heap
+        :std/debug/memleak
+        :std/format
+        :std/generic/dispatch
+        :std/getopt
+        :std/iter
+        :std/logger
+        :std/misc/list
+        :std/misc/lru
+        :std/net/address
+        :std/net/httpd
+        :std/pregexp
+        :std/srfi/1
+        :std/srfi/95
+        :std/sugar
+        :std/text/json
         ./lib)
 (export main)
 
@@ -10,24 +30,17 @@
 (include "../manifest.ss")
 
 (def (main . args)
-  (call-with-getopt os-main args
-    program: "os"
-    help: "An offline Slack reader"
-    ;; commands/options/flags for your program; see :std/cli/getopt
-    ;; ...
-    ))
+  (def ct
+    (command 'ct help: "Load all files in dir. "
+	     (argument 'directory help: "Directory where the Slack files reside")))
 
-(def* os-main
-  ((opt)
-   (os-main/options opt))
-  ((cmd opt)
-   (os-main/command cmd opt)))
+  (call-with-getopt process-args args
+		    program: "os"
+		    help: "Slack Channel log parser"
+		    load))
 
-;;; Implement this if your CLI doesn't have commands
-(def (os-main/options opt)
-  (error "Implement me!"))
-
-;;; Implement this if your CLI has commands
-(def (os-main/command cmd opt)
-     (displayln "hello " opt))
-     ;;(error "Implement me!"))
+(def (process-args cmd opt)
+  (let-hash opt
+    (case cmd
+      ((load)
+       (load .directory)))))
