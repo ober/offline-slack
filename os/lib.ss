@@ -30,22 +30,22 @@
 (def version "0.01")
 (def nil '#(nil))
 (def use-write-backs #t)
-(def wb (db-init))
 
-(def write-back-count 0)
-(def max-wb-size (def-num (getenv "k_max_wb" 100000)))
-(def tmax (def-num (getenv "tmax" 12)))
-(def indices-hash (make-hash-table))
+(def (db-init)
+  (dp "in db-init")
+  (leveldb-writebatch))
+
+(def wb (db-init))
 
 (def (def-num num)
   (if (string? num)
     (string->number num)
     num))
 
-
-
-;;; Your library support code
-;;; ...
+(def write-back-count 0)
+(def max-wb-size (def-num (getenv "k_max_wb" 100000)))
+(def tmax (def-num (getenv "tmax" 12)))
+(def indices-hash (make-hash-table))
 
 (def (find-slack-files dir)
   (find-files
@@ -57,28 +57,29 @@
 (def (load-slack dir)
   "Entry point for processing cloudtrail files"
   (parameterize ((read-json-key-as-symbol? #t))
-  (let (2G (expt 2 31))
-    (when (< (##get-min-heap) 2G)
-      (##set-min-heap! 2G)))
+    (let (2G (expt 2 31))
+      (when (< (##get-min-heap) 2G)
+        (##set-min-heap! 2G)))
 
-  (dp (format ">-- load-slack: ~a" dir))
-  (let* ((count 0)
-	     (slack-files (find-slack-files "."))
-         (pool []))
-    (for (file slack-files)
-      (cond-expand
-        (gerbil-smp
-         (while (< tmax (length (all-threads)))
-	       (thread-yield!))
-         (let ((thread (spawn (lambda () (read-slack-file file)))))
-	       (set! pool (cons thread pool))))
-        (else
-         (read-slack-file file)))
-      (flush-all?)
-      (set! count 0))
-    (cond-expand (gerbil-smp (for-each thread-join! pool)))
-    (db-write)
-    (db-close))))
+    (dp (format ">-- load-slack: ~a" dir))
+    (let* ((count 0)
+	       (slack-files (find-slack-files "."))
+           (pool []))
+      (for (file slack-files)
+        (displayln "slackfile: " file)
+        (cond-expand
+          (gerbil-smp
+           (while (< tmax (length (all-threads)))
+	         (thread-yield!))
+           (let ((thread (spawn (lambda () (read-slack-file file)))))
+	         (set! pool (cons thread pool))))
+          (else
+           (read-slack-file file)))
+        (flush-all?)
+        (set! count 0))
+      (cond-expand (gerbil-smp (for-each thread-join! pool)))
+      (db-write)
+      (db-close))))
 
 (def (file-already-processed? file)
   (dp "in file-already-processed?")
@@ -90,45 +91,33 @@
   (format "marking ~A~%" file)
   (db-batch (format "F-~a" file) "t"))
 
-(def (get-channel-name file)
-  (let* ((content (open-input-string file))
-         (json (read-json content))
-         (name (let-hash json .?name)))
-    name))
-
 (def (load-slack-file file)
-  (hash-ref (read-json (open-input-string file)) 'messages))
+  (read-json file))
 
 (def (read-slack-file file)
-(ensure-db)
-(unless (file-already-processed? file)
-  (let ((btime (time->seconds (current-time)))
-	    (count 0))
-    (call-with-input-file file
-	  (lambda (file-input)
-        (let ((messages (load-slack-file file-input))
-              (channel (get-channel-name file-input)))
-          (for-each
-	        (lambda (msg)
-              (set! count (+ count 1))
-              (process-msg channel msg))
-	        messages))
-        (mark-file-processed file)))
+  (ensure-db)
+  (unless (file-already-processed? file)
+    (let ((btime (time->seconds (current-time)))
+	      (count 0))
+      (call-with-input-file file
+	    (lambda (file-input)
+          (let ((data (load-slack-file file-input)))
+            (when (hash-table? data)
+              (let-hash data
+                (for (msg .?messages)
+                  (set! count (+ count 1))
+                  (process-msg .?channel msg))))
+              (mark-file-processed file))))
 
-    (let ((delta (- (time->seconds (current-time)) btime)))
-      (displayln
-       "rps: " (float->int (/ count delta ))
-       " size: " count
-       " delta: " delta
-       " threads: " (length (all-threads))
-	   " file: " file
-	   )))))
+      (let ((delta (- (time->seconds (current-time)) btime)))
+        (displayln
+         "rps: " (float->int (/ count delta ))
+         " size: " count
+         " delta: " delta
+         " threads: " (length (all-threads))
+	     " file: " file
+	     )))))
 
-(def (ensure-db)
-  (unless db
-    (set! db (db-open))))
-
-(def db (db-open))
 
 (def (db-open)
   (dp ">-- db-open")
@@ -145,6 +134,14 @@
 			                  block-size: (def-num (getenv "k_block_size" #f))
 			                  write-buffer-size: (def-num (getenv "k_write_buffer" (* 102400 1024 16)))
 			                  lru-cache-capacity: (def-num (getenv "k_lru_cache" 10000)))))))
+
+
+
+(def db (db-open))
+
+(def (ensure-db)
+  (unless db
+    (set! db (db-open))))
 
 (def (db-get key)
   (dp (format "db-get: ~a" key))
@@ -165,9 +162,6 @@
   (dp "in db-close")
   (leveldb-close db))
 
-(def (db-init)
-  (dp "in db-init")
-  (leveldb-writebatch))
 
 ;; leveldb stuff
 (def (get-leveldb key)

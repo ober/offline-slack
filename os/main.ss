@@ -1,7 +1,6 @@
 ;;; -*- Gerbil -*-
 (import :std/error
         :clan/db/leveldb
-        :clan/text/yaml
         :gerbil/gambit
         :ober/oberlib
         :std/actor
@@ -22,7 +21,8 @@
         :std/srfi/95
         :std/sugar
         :std/text/json
-        ./lib)
+        :ober/os/lib
+        )
 (export main)
 
 ;; build manifest; generated during the build
