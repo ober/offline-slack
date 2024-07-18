@@ -31,6 +31,9 @@
   (def load
     (command 'load help: "Load all files in dir. "
 	         (argument 'directory help: "Directory where the Slack files reside")))
+  (def lc
+    (command 'lc help: "list channels"))
+
   (def ls
     (command 'ls help: "list all records"))
 
@@ -40,6 +43,7 @@
   (call-with-getopt process-args args
 		            program: "os"
 		            help: "Slack Channel log parser"
+                    lc
                     ls
                     st
                     load))
@@ -47,6 +51,8 @@
 (def (process-args cmd opt)
   (let-hash opt
     (case cmd
+      ((lc)
+       (lc))
       ((ls)
        (list-records))
       ((load)

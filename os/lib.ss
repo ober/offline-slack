@@ -259,3 +259,38 @@
 
 (def (st)
   (displayln "Totals: " " records: " (countdb)))
+
+(def (lc)
+  (for-each displayln (list-channels)))
+
+(def (list-channels)
+  (let ((results [])
+        (entries
+         (sort-uniq-reverse
+          (uniq-by-mid-prefix "ch|"))))
+    (for (entry entries)
+      (let ((name (db-get (format "ch|~a" entry))))
+        (when name
+          (set! results (cons name results)))))
+    (for-each displayln results)))
+
+
+(def (uniq-by-mid-prefix key)
+  (dp (format ">-- uniq-by-mid-prefix: ~a" key))
+  (let ((itor (leveldb-iterator db)))
+    (leveldb-iterator-seek itor (format "~a#" key))
+    (let lp ((res '()))
+      (if (leveldb-iterator-valid? itor)
+        (let ((k (utf8->string (leveldb-iterator-key itor))))
+          (dp (format "k is ~a" k))
+          (if (pregexp-match key k)
+            (let ((mid (nth 1 (pregexp-split "#" k))))
+	            (unless (member mid res)
+                (set! res (cons mid res)))
+	            (leveldb-iterator-next itor)
+	            (lp res))
+	          res))
+        res))))
+
+(def (sort-uniq-reverse lst)
+  (reverse (unique! (sort! lst eq?))))
