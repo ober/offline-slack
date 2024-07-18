@@ -191,6 +191,8 @@
             (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type))))
         (displayln "req-id is " req-id)
 
+        (unless (and .?user .?sub_type)
+          (displayln (hash->string msg)))
         ;; (unless (getenv "osro" #f)
         ;;   (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
