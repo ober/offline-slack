@@ -34,10 +34,14 @@
   (def ls
     (command 'ls help: "list all records"))
 
+  (def st
+    (command 'st help: "Show total db entry count"))
+
   (call-with-getopt process-args args
 		            program: "os"
 		            help: "Slack Channel log parser"
                     ls
+                    st
                     load))
 
 (def (process-args cmd opt)
@@ -46,4 +50,6 @@
       ((ls)
        (list-records))
       ((load)
-       (load-slack .directory)))))
+       (load-slack .directory))
+      ((st)
+       (countdb)))))
