@@ -115,7 +115,7 @@
                     (process-msg channel-hash msg))
                   (db-batch (format "ch|~a" channel-hash) .?name)
                   (db-batch (format "n|~a" .?name) channel-hash)
-                  (mark-file-processed channel-name)))))))
+                  (mark-file-processed channel-hash)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
         (displayln
