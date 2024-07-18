@@ -93,7 +93,7 @@
 
 (def (load-slack-file file)
   (try
-   (read-json file)
+   (read-json (utf8->string file))
    (catch (e)
      (display-exception e))))
 
