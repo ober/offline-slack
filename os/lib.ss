@@ -192,8 +192,9 @@
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
+
         ;; (unless (getenv "osro" #f)
-        ;;   (set! write-back-count (+ write-back-count 1))
+        (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
         ;;   (when (string=? user "")
         ;;     (displayln "Error: missing user: " user))
@@ -215,14 +216,14 @@
 
 (def (flush-all?)
   (dp (format "write-back-count && max-wb-size ~a ~a" write-back-count max-wb-size))
-  ;; (when (> write-back-count max-wb-size)
-  (displayln "writing.... " write-back-count)
-  (let ((old wb))
-    (spawn
-     (lambda ()
-	     (leveldb-write db old)))
-    (set! wb (leveldb-writebatch))
-    (set! write-back-count 0)))
+  (when (> write-back-count max-wb-size)
+    (displayln "writing.... " write-back-count)
+    (let ((old wb))
+      (spawn
+       (lambda ()
+	       (leveldb-write db old)))
+      (set! wb (leveldb-writebatch))
+      (set! write-back-count 0))))
 
 (def (ls)
   (list-records))
