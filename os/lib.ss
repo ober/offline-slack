@@ -108,10 +108,11 @@
                 (channel-name (path-strip-extension (path-strip-directory file))))
             (when (hash-table? data)
               (let-hash data
-                (for (msg .?messages)
-                  (set! count (+ count 1))
-                  (process-msg channel-name msg))))
-            (mark-file-processed file))))
+                (when (and .?messages (list? .?messages) (> (length .?messages) 0))
+                  (for (msg .?messages)
+                    (set! count (+ count 1))
+                    (process-msg channel-name msg)))))
+              (mark-file-processed file))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
         (displayln
