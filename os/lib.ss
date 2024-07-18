@@ -190,7 +190,7 @@
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
-            (req-id (format "m~a~a~a~a~a" channel delim .?ts delim (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
+            (req-id (format "m~a~a~a~a~a~a" delim channel delim .?ts delim (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
@@ -264,8 +264,22 @@
   (for-each displayln (list-channels)))
 
 (def (msgs channel)
-  (let ((ch (db-get channel)))
-    (displayln "ch is " ch))
+  (let* ((outs [[ "Date" "Name" "Text" ]])
+         (ch (db-get (format "n~a~a" delim channel)))
+         (pat (format "m~a~a~a" delim ch delim))
+         (entries (lookup-keys pat)))
+
+    (for (entry entries)
+      (let* ((msg (db-get entry))
+             (fields (pregexp-split delim entry))
+             (user (nth 3 fields))
+             (date (nth 2 fields)))
+        (set! outs (cons [
+                           date
+                           user
+                           (let-hash msg .?text)
+                           ] outs))))
+    (style-output outs "org-mode")))
 
 (def (index-channels)
   (let ((index (format "channel~aindex" delim))
@@ -300,12 +314,30 @@
         (let ((k (utf8->string (leveldb-iterator-key itor))))
           (if (pregexp-match key k)
             (let ((mid (nth pos (pregexp-split delim k))))
+              (displayln "key: " key " matches k: " k)
+              (displayln (member mid res))
               (unless (member mid res)
                 (set! res (cons mid res)))
 	            (leveldb-iterator-next itor)
 	            (lp res))
 	          res))
         res))))
+
+(def (lookup-keys key)
+  (dp (format ">-- uniq-by-nth-prefix: ~a" key))
+  (let ((itor (leveldb-iterator db)))
+    (leveldb-iterator-seek itor (format "~a" key))
+    (let lp ((res []))
+      (if (leveldb-iterator-valid? itor)
+        (let ((k (utf8->string (leveldb-iterator-key itor))))
+          (if (pregexp-match key k)
+            (begin
+              (unless (member k res)
+                (set! res (cons k res)))
+	            (leveldb-iterator-next itor)
+	          (lp res))
+	        res))
+      res))))
 
 (def (sort-uniq-reverse lst)
   (reverse (unique! (sort! lst eq?))))
