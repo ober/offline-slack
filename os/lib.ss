@@ -189,7 +189,7 @@
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
-            (req-id (format "~a|~a|~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
+            (req-id (format "m|~a|~a|~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
         ;;(dp (format  "req-id is ~a" req-id))
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
