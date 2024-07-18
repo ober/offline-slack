@@ -113,7 +113,7 @@
                   (for (msg .?messages)
                     (set! count (+ count 1))
                     (process-msg channel-name msg))
-                  (mark-file-processed channel)))))))
+                  (mark-file-processed channel-name)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
         (displayln
