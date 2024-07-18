@@ -36,6 +36,9 @@
     (command 'dbg help: "Fetch value for key"
 	           (argument 'tag help: "Key to resolve")))
 
+  (def cs
+    (command 'cs help: "Channel Message counts"))
+
   (def msgs
     (command 'msgs help: "Fetch value for key"
 	           (argument 'channel help: "Channel to fetch messages")))
@@ -55,6 +58,7 @@
   (call-with-getopt process-args args
 		                program: "os"
 		                help: "Slack Channel log parser"
+                    cs
                     dbg
                     ic
                     lc
@@ -66,6 +70,8 @@
 (def (process-args cmd opt)
   (let-hash opt
     (case cmd
+      ((cs)
+       (cs))
       ((dbg)
        (dbg .tag))
       ((lc)

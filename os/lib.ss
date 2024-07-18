@@ -198,14 +198,6 @@
         ;; (unless (getenv "osro" #f)
         (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
-        ;;   (when (string=? user "")
-        ;;     (displayln "Error: missing user: " user))
-        ;;   (when (string? user)
-	      ;;     (db-batch (format "u#~a#~a" user epoch) req-id))
-        ;;   (when (string? .?eventName)
-	      ;;     (db-batch (format "en#~a#~a" .?eventName epoch) req-id))
-        ;;   (when (string? .?errorCode)
-	      ;;     (db-batch (format "ec#~a#~a" .errorCode epoch) req-id)))
         ))))
 
 (def (db-batch key value)
@@ -262,6 +254,18 @@
 
 (def (lc)
   (for-each displayln (list-channels)))
+
+(def (cs)
+  (let ((outs [[ "Channel" "Count" ]])
+        (channels (list-channels)))
+    (for (channel channels)
+      (let* ((ch (db-get (format "n~a~a" delim channel)))
+            (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
+        (set! outs (cons [
+                          channel
+                          count
+                          ] outs))))
+    (style-output outs "org-mode")))
 
 (def (msgs channel)
   (let* ((outs [[ "Date" "Name" "Text" ]])
