@@ -25,23 +25,24 @@
         )
 (export main)
 
-;; build manifest; generated during the build
-;; defines version-manifest which you can use for exact versioning
-;;(include "../manifest.ss")
 (def program-name "kunabi")
 
 (def (main . args)
   (def load
     (command 'load help: "Load all files in dir. "
-	     (argument 'directory help: "Directory where the Slack files reside")))
+	         (argument 'directory help: "Directory where the Slack files reside")))
+  (def ls
+    (command 'ls help: "list all records"))
 
   (call-with-getopt process-args args
-		    program: "os"
-		    help: "Slack Channel log parser"
-		    load))
+		            program: "os"
+		            help: "Slack Channel log parser"
+		            load))
 
 (def (process-args cmd opt)
   (let-hash opt
     (case cmd
+      ((ls)
+       (ls))
       ((load)
        (load-slack .directory)))))
