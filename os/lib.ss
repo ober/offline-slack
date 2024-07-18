@@ -188,6 +188,8 @@
 (def (process-msg channel msg)
   (if (hash-table? msg)
     (let-hash msg
+      (unless .?text
+        (displayln "Missing text: " (hash->string msg)))
       (let ((h (hash
                 (text .?text)))
             (req-id (format "m~a~a~a~a~a~a" delim channel delim .?ts delim (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
