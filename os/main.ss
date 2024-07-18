@@ -25,7 +25,7 @@
         )
 (export main)
 
-(def program-name "kunabi")
+(def program-name "os")
 
 (def (main . args)
   (def load
@@ -37,12 +37,13 @@
   (call-with-getopt process-args args
 		            program: "os"
 		            help: "Slack Channel log parser"
-		            load))
+                    ls
+                    load))
 
 (def (process-args cmd opt)
   (let-hash opt
     (case cmd
       ((ls)
-       (ls))
+       (list-records))
       ((load)
        (load-slack .directory)))))
