@@ -52,4 +52,4 @@
       ((load)
        (load-slack .directory))
       ((st)
-       (countdb)))))
+       (st)))))

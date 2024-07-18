@@ -253,3 +253,6 @@
       (if (leveldb-iterator-valid? itor)
         (lp (1+ count))
         count))))
+
+(def (st)
+  (displayln "Totals: " " records: " (countdb)))
