@@ -94,7 +94,6 @@
 (def (load-slack-file channel port)
   (try
    (read-json port)
-   (mark-file-processed channel)
    (catch (e)
      (display-exception e))))
 
@@ -113,8 +112,8 @@
                 (when (and .?messages (list? .?messages) (> (length .?messages) 0))
                   (for (msg .?messages)
                     (set! count (+ count 1))
-                    (process-msg channel-name msg)))))
-              )))
+                    (process-msg channel-name msg))
+                  (mark-file-processed channel)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
         (displayln
