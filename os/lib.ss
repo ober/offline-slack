@@ -272,8 +272,7 @@
       (let ((name (db-get (format "ch|~a" entry))))
         (when name
           (set! results (cons name results)))))
-    (for-each displayln results)))
-
+    results))
 
 (def (uniq-by-mid-prefix key)
   (dp (format ">-- uniq-by-mid-prefix: ~a" key))
