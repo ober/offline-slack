@@ -103,12 +103,13 @@
 	        (count 0))
       (call-with-input-file file
 	      (lambda (file-input)
-          (let ((data (load-slack-file file-input)))
+          (let ((data (load-slack-file file-input))
+                (channel-name (path-strip-extention (path-strip-directory file))))
             (when (hash-table? data)
               (let-hash data
                 (for (msg .?messages)
                   (set! count (+ count 1))
-                  (process-msg .?channel msg))))
+                  (process-msg channel-name msg))))
             (mark-file-processed file))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
@@ -182,6 +183,8 @@
     (leveldb-repair-db (format "~a/records" db-dir))))
 
 (def (process-msg channel msg)
+  (unless channel
+    (displayln "channel is broke yo"))
   (if (hash-table? msg)
     ;;
     (let-hash msg
@@ -189,6 +192,7 @@
                 (text .?text)))
             (req-id (format "~a#~a#~a" channel .?ts .?user )))
         (displayln "req-id is " req-id)
+
         (unless .?name
           (displayln (hash->string msg)))
         ;; (unless (getenv "osro" #f)
