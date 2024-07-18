@@ -42,7 +42,7 @@
     num))
 
 (def write-back-count 0)
-(def max-wb-size (def-num (getenv "k_max_wb" 1)))
+(def max-wb-size (def-num (getenv "k_max_wb" 1000)))
 (def tmax (def-num (getenv "tmax" 12)))
 (def indices-hash (make-hash-table))
 
@@ -188,10 +188,10 @@
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
-            (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username))))
+            (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
         (displayln "req-id is " req-id)
 
-        (unless (or .?user .?sub_type .?client_msg_id .?username)
+        (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
         ;; (unless (getenv "osro" #f)
         ;;   (set! write-back-count (+ write-back-count 1))
