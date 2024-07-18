@@ -191,7 +191,7 @@
             (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type .?client_msg_id))))
         (displayln "req-id is " req-id)
 
-        (unless (and .?user .?sub_type .?client_msg_id)
+        (unless (or .?user .?sub_type .?client_msg_id)
           (displayln (hash->string msg)))
         ;; (unless (getenv "osro" #f)
         ;;   (set! write-back-count (+ write-back-count 1))
