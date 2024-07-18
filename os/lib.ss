@@ -114,8 +114,8 @@
                   (for (msg .?messages)
                     (set! count (+ count 1))
                     (process-msg channel-hash msg))
-                  (db-batch (format "ch~a~a" channel-hash delim) .?name)
-                  (db-batch (format "n~a~a" .?name delim) channel-hash)
+                  (db-batch (format "ch~a~a" delim channel-hash) .?name)
+                  (db-batch (format "n~a~a" delim .?name) channel-hash)
                   (mark-file-processed channel-hash)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
@@ -264,7 +264,7 @@
   (for-each displayln (list-channels)))
 
 (def (index-channels)
-  (let ((index (format "channe~aindex" delim))
+  (let ((index (format "channel~aindex" delim))
         (results []))
     (db-rm index)
     (let ((entries
@@ -275,7 +275,7 @@
           (when name
             (set! results (cons name results))))))
     (if (length>n? results 0)
-      (db-put index (sort! results string=?))
+      (db-put index results)
       (displayln "Index channels found nothing"))))
 
 (def (list-channels)
@@ -283,6 +283,7 @@
     (if (db-key? index)
       (db-get index)
       (begin
+        (display "no index found")
         (index-channels)
         (db-get index)))))
 
@@ -295,7 +296,9 @@
         (let ((k (utf8->string (leveldb-iterator-key itor))))
           (if (pregexp-match key k)
             (let ((mid (nth pos (pregexp-split delim k))))
+              (displayln "mid: " mid " k: " k " key: " key)
               (unless (member mid res)
+                (displayln "adding " mid)
                 (set! res (cons mid res)))
 	            (leveldb-iterator-next itor)
 	            (lp res))
