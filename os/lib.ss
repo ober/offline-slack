@@ -42,7 +42,7 @@
     num))
 
 (def write-back-count 0)
-(def max-wb-size (def-num (getenv "k_max_wb" 1000)))
+(def max-wb-size (def-num (getenv "k_max_wb" 100000)))
 (def tmax (def-num (getenv "tmax" 12)))
 (def indices-hash (make-hash-table))
 
