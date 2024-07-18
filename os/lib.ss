@@ -82,13 +82,14 @@
 
 (def (file-already-processed? file)
   (dp "in file-already-processed?")
-  (let ((seen (db-key? (format "F-~a" file))))
+  (let ((seen (db-key? (format "F-~a" (path-strip-directory file)))))
     seen))
 
 (def (mark-file-processed file)
   (dp "in mark-file-processed")
-  (format "marking ~A~%" file)
-  (db-batch (format "F-~a" file) "t"))
+  (let ((filename (path-strip-directory file)))
+    (dp (format "marking ~A~%" filename))
+    (db-batch (format "F-~a" filename) "t"))
 
 (def (load-slack-file file)
   (try
