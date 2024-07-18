@@ -189,7 +189,7 @@
                 (text .?text)))
             (req-id (format "~a#~a#~a" .?channel .?ts .?user )))
         (displayln "req-id is " req-id)
-        (unless (and .channel .name)
+        (unless (and .?channel .?name)
           (displayln (hash->string msg)))
         ;; (unless (getenv "osro" #f)
         ;;   (set! write-back-count (+ write-back-count 1))
