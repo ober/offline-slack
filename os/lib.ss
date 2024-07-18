@@ -222,20 +222,6 @@
       (set! wb (leveldb-writebatch))
       (set! write-back-count 0))))
 
-(def (list-records)
-  "Print all records"
-  (let (itor (leveldb-iterator db))
-    (leveldb-iterator-seek-first itor)
-    (let lp ()
-      (leveldb-iterator-next itor)
-      (let ((key (utf8->string (leveldb-iterator-key itor)))
-            (val (unmarshal-value (leveldb-iterator-value itor))))
-        (if (hash-table? val)
-          (displayln (format "k: ~a v: ~a" key (hash->list val)))
-          (displayln (format "k: ~a v: ~a" key val))))
-      (when (leveldb-iterator-valid? itor)
-        (lp)))))
-
 (def (ls)
   (list-records))
 
