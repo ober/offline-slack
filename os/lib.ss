@@ -63,7 +63,7 @@
 
     (dp (format ">-- load-slack: ~a" dir))
     (let* ((count 0)
-	         (slack-files (find-slack-files "."))
+	         (slack-files (find-slack-files dir))
            (pool []))
       (for (file slack-files)
         (dp (format "slackfile: ~a" file))
