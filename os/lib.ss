@@ -183,8 +183,6 @@
     (leveldb-repair-db (format "~a/records" db-dir))))
 
 (def (process-msg channel msg)
-  (unless channel
-    (displayln "channel is broke yo"))
   (if (hash-table? msg)
     ;;
     (let-hash msg
@@ -194,7 +192,7 @@
         (displayln "req-id is " req-id)
 
         (unless .?name
-          (displayln (hash->string msg)))
+          (displayln "No Name! " (hash->string msg)))
         ;; (unless (getenv "osro" #f)
         ;;   (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
