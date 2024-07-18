@@ -104,7 +104,7 @@
       (call-with-input-file file
 	      (lambda (file-input)
           (let ((data (load-slack-file file-input))
-                (channel-name (path-strip-extention (path-strip-directory file))))
+                (channel-name (path-strip-extension (path-strip-directory file))))
             (when (hash-table? data)
               (let-hash data
                 (for (msg .?messages)
@@ -120,7 +120,6 @@
          " threads: " (length (all-threads))
 	       " file: " file
 	       )))))
-
 
 (def (db-open)
   (dp ">-- db-open")
