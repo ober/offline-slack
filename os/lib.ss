@@ -273,7 +273,7 @@
       (let ((name (db-get (format "ch|~a" entry))))
         (when name
           (set! results (cons name results)))))
-    results))
+    results)))
 
 (def (list-channels)
   (let (index "channel|index")
