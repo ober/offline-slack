@@ -89,7 +89,7 @@
   (dp "in mark-file-processed")
   (let ((filename (path-strip-directory file)))
     (dp (format "marking ~A~%" filename))
-    (db-batch (format "F-~a" filename) "t"))
+    (db-batch (format "F-~a" filename) "t")))
 
 (def (load-slack-file file)
   (try
