@@ -183,7 +183,7 @@
 
 (def (process-msg channel msg)
   (if (hash-table? msg)
-    (displayln (table->list msg))
+    (displayln (hash->string msg))
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
