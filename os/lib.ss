@@ -188,10 +188,10 @@
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
-            (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type .?client_msg_id))))
+            (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username))))
         (displayln "req-id is " req-id)
 
-        (unless (or .?user .?sub_type .?client_msg_id)
+        (unless (or .?user .?sub_type .?client_msg_id .?username)
           (displayln (hash->string msg)))
         ;; (unless (getenv "osro" #f)
         ;;   (set! write-back-count (+ write-back-count 1))
