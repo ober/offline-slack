@@ -104,7 +104,7 @@
 	        (count 0))
       (call-with-input-file file
 	      (lambda (file-input)
-          (let* ((channel-name (path-strip-extension (path-strip-directory file)))
+          (let* ((channel-hash (path-strip-extension (path-strip-directory file)))
                  (data (load-slack-file file-input)))
 
             (when (hash-table? data)
@@ -112,7 +112,9 @@
                 (when (and .?messages (list? .?messages) (> (length .?messages) 0))
                   (for (msg .?messages)
                     (set! count (+ count 1))
-                    (process-msg channel-name msg))
+                    (process-msg channel-hash msg))
+                  (db-batch (format "ch|~a" channel-hash) .?name)
+                  (db-batch (format "n|~a" .?name) channel-hash)
                   (mark-file-processed channel-name)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
@@ -139,8 +141,6 @@
 			                        block-size: (def-num (getenv "k_block_size" #f))
 			                        write-buffer-size: (def-num (getenv "k_write_buffer" (* 102400 1024 16)))
 			                        lru-cache-capacity: (def-num (getenv "k_lru_cache" 10000)))))))
-
-
 
 (def db (db-open))
 
@@ -190,7 +190,7 @@
       (let ((h (hash
                 (text .?text)))
             (req-id (format "~a|~a|~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
-        (dp (format  "req-id is ~a" req-id))
+        ;;(dp (format  "req-id is ~a" req-id))
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
