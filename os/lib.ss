@@ -65,7 +65,7 @@
 	         (slack-files (find-slack-files "."))
            (pool []))
       (for (file slack-files)
-        (displayln "slackfile: " file)
+        (dp (format "slackfile: ~a" file))
         (cond-expand
           (gerbil-smp
            (while (< tmax (length (all-threads)))
@@ -184,11 +184,10 @@
 
 (def (process-msg channel msg)
   (if (hash-table? msg)
-    ;;
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
-            (req-id (format "~a#~a#~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
+            (req-id (format "~a|~a|~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
         (displayln "req-id is " req-id)
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
@@ -216,14 +215,14 @@
 
 (def (flush-all?)
   (dp (format "write-back-count && max-wb-size ~a ~a" write-back-count max-wb-size))
-  (when (> write-back-count max-wb-size)
-    (displayln "writing.... " write-back-count)
-    (let ((old wb))
-      (spawn
-       (lambda ()
-	       (leveldb-write db old)))
-      (set! wb (leveldb-writebatch))
-      (set! write-back-count 0))))
+  ;; (when (> write-back-count max-wb-size)
+  (displayln "writing.... " write-back-count)
+  (let ((old wb))
+    (spawn
+     (lambda ()
+	     (leveldb-write db old)))
+    (set! wb (leveldb-writebatch))
+    (set! write-back-count 0)))
 
 (def (ls)
   (list-records))
