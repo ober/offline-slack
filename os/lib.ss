@@ -91,9 +91,10 @@
     (dp (format "marking ~A~%" filename))
     (db-batch (format "F-~a" filename) "t")))
 
-(def (load-slack-file file)
+(def (load-slack-file channel port)
   (try
-   (read-json file)
+   (read-json port)
+   (mark-file-processed channel)
    (catch (e)
      (display-exception e))))
 
@@ -104,15 +105,16 @@
 	        (count 0))
       (call-with-input-file file
 	      (lambda (file-input)
-          (let ((data (load-slack-file file-input))
-                (channel-name (path-strip-extension (path-strip-directory file))))
+          (let* ((channel-name (path-strip-extension (path-strip-directory file)))
+                 (data (load-slack-file channel-name file-input)))
+
             (when (hash-table? data)
               (let-hash data
                 (when (and .?messages (list? .?messages) (> (length .?messages) 0))
                   (for (msg .?messages)
                     (set! count (+ count 1))
                     (process-msg channel-name msg)))))
-              (mark-file-processed file))))
+              )))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
         (displayln
