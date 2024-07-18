@@ -29,6 +29,7 @@
 (def version "0.01")
 (def nil '#(nil))
 (def use-write-backs #t)
+(def delim "#")
 
 (def (db-init)
   (dp "in db-init")
@@ -113,8 +114,8 @@
                   (for (msg .?messages)
                     (set! count (+ count 1))
                     (process-msg channel-hash msg))
-                  (db-batch (format "ch|~a" channel-hash) .?name)
-                  (db-batch (format "n|~a" .?name) channel-hash)
+                  (db-batch (format "ch~a~a" channel-hash delim) .?name)
+                  (db-batch (format "n~a~a" .?name delim) channel-hash)
                   (mark-file-processed channel-hash)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
@@ -181,7 +182,7 @@
 
 (def (repairdb)
   "Repair the db"
-  (let ((db-dir (or (getenv "osdb" #f) (format "~a/os-db/" (user-info-home (user-info (user-name)))))))
+  (let ((db-dir (or (getenv "slackdb" #f) (format "~a/slackdb/" (user-info-home (user-info (user-name)))))))
     (leveldb-repair-db (format "~a/records" db-dir))))
 
 (def (process-msg channel msg)
@@ -189,8 +190,7 @@
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
-            (req-id (format "m|~a|~a|~a" channel .?ts (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
-        ;;(dp (format  "req-id is ~a" req-id))
+            (req-id (format "m~a~a~a~a~a" channel delim .?ts delim (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
@@ -264,24 +264,22 @@
   (for-each displayln (list-channels)))
 
 (def (index-channels)
-  (let ((index "channel|index")
+  (let ((index (format "channe~aindex" delim))
         (results []))
     (db-rm index)
     (let ((entries
            (sort-uniq-reverse
-            (uniq-by-nth-prefix "ch|" "\\|" 1))))
+            (uniq-by-nth-prefix (format "ch~a" delim) delim 1))))
       (for (entry entries)
-        (displayln "entry: " entry)
-        (let ((name (db-get (format "ch|~a" entry))))
+        (let ((name (db-get (format "ch~a~a" delim entry))))
           (when name
-            (displayln "name: " name)
-            (set! results (cons name results)))))
-      (if (length>n? results 0)
-        (db-batch index results)
-        (displayln "Index channels found nothing")))))
+            (set! results (cons name results))))))
+    (if (length>n? results 0)
+      (db-put index (sort! results string=?))
+      (displayln "Index channels found nothing"))))
 
 (def (list-channels)
-  (let (index "channel|index")
+  (let (index (format "channel~aindex" delim))
     (if (db-key? index)
       (db-get index)
       (begin
@@ -292,7 +290,7 @@
   (dp (format ">-- uniq-by-mid-prefix: ~a" key))
   (let ((itor (leveldb-iterator db)))
     (leveldb-iterator-seek itor (format "~a" key))
-    (let lp ((res '()))
+    (let lp ((res []))
       (if (leveldb-iterator-valid? itor)
         (let ((k (utf8->string (leveldb-iterator-key itor))))
           (if (pregexp-match key k)
