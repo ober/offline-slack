@@ -92,7 +92,10 @@
   (db-batch (format "F-~a" file) "t"))
 
 (def (load-slack-file file)
-  (read-json file))
+     (try
+      (read-json file)
+      (catch (e)
+             (display-exception e))))
 
 (def (read-slack-file file)
   (ensure-db)
