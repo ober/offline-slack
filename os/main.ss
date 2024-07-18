@@ -36,6 +36,10 @@
     (command 'dbg help: "Fetch value for key"
 	           (argument 'tag help: "Key to resolve")))
 
+  (def msgs
+    (command 'msgs help: "Fetch value for key"
+	           (argument 'channel help: "Channel to fetch messages")))
+
   (def lc
     (command 'lc help: "list channels"))
 
@@ -55,6 +59,7 @@
                     ic
                     lc
                     ls
+                    msgs
                     st
                     load))
 
@@ -71,5 +76,7 @@
        (list-records))
       ((load)
        (load-slack .directory))
+      ((msgs)
+       (msgs .channel))
       ((st)
        (st)))))

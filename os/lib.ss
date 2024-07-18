@@ -263,6 +263,10 @@
 (def (lc)
   (for-each displayln (list-channels)))
 
+(def (msgs channel)
+  (let ((ch (db-get channel)))
+    (displayln "ch is " ch))
+
 (def (index-channels)
   (let ((index (format "channel~aindex" delim))
         (results []))
@@ -288,7 +292,7 @@
         (db-get index)))))
 
 (def (uniq-by-nth-prefix key delim pos)
-  (dp (format ">-- uniq-by-mid-prefix: ~a" key))
+  (dp (format ">-- uniq-by-nth-prefix: ~a" key))
   (let ((itor (leveldb-iterator db)))
     (leveldb-iterator-seek itor (format "~a" key))
     (let lp ((res []))
@@ -296,9 +300,7 @@
         (let ((k (utf8->string (leveldb-iterator-key itor))))
           (if (pregexp-match key k)
             (let ((mid (nth pos (pregexp-split delim k))))
-              (displayln "mid: " mid " k: " k " key: " key)
               (unless (member mid res)
-                (displayln "adding " mid)
                 (set! res (cons mid res)))
 	            (leveldb-iterator-next itor)
 	            (lp res))
