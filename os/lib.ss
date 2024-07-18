@@ -91,7 +91,7 @@
     (dp (format "marking ~A~%" filename))
     (db-batch (format "F-~a" filename) "t")))
 
-(def (load-slack-file channel port)
+(def (load-slack-file port)
   (try
    (read-json port)
    (catch (e)
@@ -105,7 +105,7 @@
       (call-with-input-file file
 	      (lambda (file-input)
           (let* ((channel-name (path-strip-extension (path-strip-directory file)))
-                 (data (load-slack-file channel-name file-input)))
+                 (data (load-slack-file file-input)))
 
             (when (hash-table? data)
               (let-hash data
