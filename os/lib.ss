@@ -2,7 +2,6 @@
 
 (import
   :clan/db/leveldb
-  :clan/text/yaml
   :gerbil/gambit
   :ober/oberlib
   :std/actor-v18/io
@@ -165,7 +164,6 @@
   (dp "in db-close")
   (leveldb-close db))
 
-
 ;; leveldb stuff
 (def (get-leveldb key)
   (displayln "get-leveldb: " key)
@@ -185,6 +183,7 @@
 
 (def (process-msg channel msg)
   (if (hash-table? msg)
+    (displayln (hash-table->string msg))
     (let-hash msg
       (let ((h (hash
                 (text .?text)))
