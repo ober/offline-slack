@@ -9,5 +9,5 @@
      "os/main"
      bin: "os"
      "-ld-options"
-     "-lleveldb -lstdc++ -lz -lm -lutil"
+     "-lyaml -lleveldb -lstdc++ -lssl -lcrypto -lz -lm -lutil"
      )))
