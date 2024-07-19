@@ -202,7 +202,21 @@
         ;; (unless (getenv "osro" #f)
         (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
-        ))))
+        (when (and .?team .?user)
+          (let ((key (format "t|~a" .team)))
+            (if (db-key? key)
+              (let ((th (db-get key))
+                    (results []))
+                (when (hash-table? th)
+                  (let-hash th
+                    (unless (member ..user .$members)
+                      (db-put key (hash
+                                   ("members" (cons ..user .$members))
+                                   ("name" .$name)))))))
+              (begin ;; no key
+                (db-put key (hash
+                             ("members" (list .$user))
+                             ("name" .team)))))))))))
 
 (def (db-batch key value)
   (unless (string? key) (dp (format "key: ~a val: ~a" (##type-id key) (##type-id value))))
