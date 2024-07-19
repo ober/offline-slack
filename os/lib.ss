@@ -228,16 +228,15 @@
       (let ((msgs (db-get key)))
         (when (hash-table? msgs)
           (let-hash msgs
-            (unless (member word .$messages string-ci=?)
+            (unless (member req-id .$messages string-ci=?)
               (displayln "word: " word " not in messages")
               (db-put key (hash
-                           ("messages" (cons word .$messages))))
+                           ("messages" (cons req-id .$messages))))
               ))))
 
         (begin ;; no key for word
           (db-put key (hash
-                       ("messages" [word])))))))
-
+                       ("messages" [req-id])))))))
 
 (def (words)
   (let ((werds (lookup-keys (format "w~a" delim))))
