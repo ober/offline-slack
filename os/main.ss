@@ -30,9 +30,17 @@
 (def (main . args)
   (def load
     (command 'load help: "Load all files in dir. "
-	         (argument 'directory help: "Directory where the Slack files reside")))
+	           (argument 'directory help: "Directory where the Slack files reside")))
+
+  (def dbg
+    (command 'dbg help: "Fetch value for key"
+	           (argument 'tag help: "Key to resolve")))
+
   (def lc
     (command 'lc help: "list channels"))
+
+  (def ic
+    (command 'ic help: "list channels"))
 
   (def ls
     (command 'ls help: "list all records"))
@@ -41,8 +49,10 @@
     (command 'st help: "Show total db entry count"))
 
   (call-with-getopt process-args args
-		            program: "os"
-		            help: "Slack Channel log parser"
+		                program: "os"
+		                help: "Slack Channel log parser"
+                    dbg
+                    ic
                     lc
                     ls
                     st
@@ -51,8 +61,12 @@
 (def (process-args cmd opt)
   (let-hash opt
     (case cmd
+      ((dbg)
+       (dbg .tag))
       ((lc)
        (lc))
+      ((ic)
+       (index-channels))
       ((ls)
        (list-records))
       ((load)

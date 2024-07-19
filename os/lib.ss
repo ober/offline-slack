@@ -153,7 +153,7 @@
   (let ((ret (leveldb-get db (format "~a" key))))
     (if (u8vector? ret)
       (unmarshal-value ret)
-      "N/A")))
+      #f)))
 
 (def (db-key? key)
   (dp (format ">-- db-key? with ~a" key))
@@ -264,16 +264,21 @@
   (for-each displayln (list-channels)))
 
 (def (index-channels)
-  (let ((index "channel|index"))
+  (let ((index "channel|index")
+        (results []))
     (db-rm index)
     (let ((entries
            (sort-uniq-reverse
-            (uniq-by-mid-prefix "ch|"))))
-    (for (entry entries)
-      (let ((name (db-get (format "ch|~a" entry))))
-        (when name
-          (set! results (cons name results)))))
-    results)))
+            (uniq-by-nth-prefix "ch|" "\\|" 1))))
+      (for (entry entries)
+        (displayln "entry: " entry)
+        (let ((name (db-get (format "ch|~a" entry))))
+          (when name
+            (displayln "name: " name)
+            (set! results (cons name results)))))
+      (if (length>n? results 0)
+        (db-batch index results)
+        (displayln "Index channels found nothing")))))
 
 (def (list-channels)
   (let (index "channel|index")
@@ -283,17 +288,16 @@
         (index-channels)
         (db-get index)))))
 
-(def (uniq-by-mid-prefix key)
+(def (uniq-by-nth-prefix key delim pos)
   (dp (format ">-- uniq-by-mid-prefix: ~a" key))
   (let ((itor (leveldb-iterator db)))
     (leveldb-iterator-seek itor (format "~a" key))
     (let lp ((res '()))
       (if (leveldb-iterator-valid? itor)
         (let ((k (utf8->string (leveldb-iterator-key itor))))
-          (dp (format "k is ~a" k))
           (if (pregexp-match key k)
-            (let ((mid (nth 1 (pregexp-split "|" k))))
-	            (unless (member mid res)
+            (let ((mid (nth pos (pregexp-split delim k))))
+              (unless (member mid res)
                 (set! res (cons mid res)))
 	            (leveldb-iterator-next itor)
 	            (lp res))
@@ -302,3 +306,10 @@
 
 (def (sort-uniq-reverse lst)
   (reverse (unique! (sort! lst eq?))))
+
+(def (db-rm key)
+  (dp (format "<----> db-rm: key: ~a" key))
+  (leveldb-delete db key))
+
+(def (dbg key)
+  (displayln (db-get key)))
