@@ -190,7 +190,7 @@
   (if (hash-table? msg)
     (let-hash msg
       (unless .?text
-        (dp "Missing text: " (hash->string msg)))
+        (dp (format "Missing text: ~a" (hash->string msg))))
 
       (let ((h (hash
                 (text (or .?text "File Uploaded"))))
