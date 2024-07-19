@@ -202,9 +202,8 @@
         (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
         (when .?text
-          (let ((words (pregexp-split " +" .text)))
+          (let ((words (pregexp-split "[ \t\n\r]+" .text)))
             (for (word words)
-              ;;(displayln (format "W| ~a" word)))))
               (register-word word req-id))))
 
         (when (and .?team .?user)
@@ -229,7 +228,8 @@
       (let ((msgs (db-get key)))
         (when (hash-table? msgs)
           (let-hash msgs
-            (unless (member word .$messages)
+            (unless (member word .$messages string-ci=?)
+              (displayln "word: " word " not in messages")
               (db-put key (hash
                            ("messages" (cons word .$messages))))
               ))))
@@ -240,9 +240,8 @@
 
 
 (def (words)
-  (let ((werds (uniq-by-nth-prefix "w" delim 1)))
+  (let ((werds (lookup-keys (format "w~a" delim))))
     (for-each displayln werds)))
-
 
 (def (db-batch key value)
   (unless (string? key) (dp (format "key: ~a val: ~a" (##type-id key) (##type-id value))))
