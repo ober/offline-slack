@@ -46,6 +46,10 @@
     (command 'msgs help: "Fetch value for key"
 	           (argument 'channel help: "Channel to fetch messages")))
 
+  (def words
+    (command 'words help: "List all words in the index"))
+
+
   (def channels
     (command 'channel help: "list channels"))
 
@@ -67,6 +71,7 @@
                     channels
                     ls
                     msgs
+                    words
                     st
                     load))
 
@@ -91,4 +96,6 @@
        (st))
       ((ts)
        (ts))
+      ((words)
+       (words))
        )))
