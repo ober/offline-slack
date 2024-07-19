@@ -16,7 +16,7 @@
   :std/misc/threads
   :std/pregexp
   :std/srfi/1
-  :std/srfi/19
+  (only-in :std/srfi/19 date->string)
   :std/srfi/95
   :std/sugar
   :std/text/hex
