@@ -39,12 +39,15 @@
   (def cs
     (command 'cs help: "Channel Message counts"))
 
+  (def ts
+    (command 'cs help: "Team member counts"))
+
   (def msgs
     (command 'msgs help: "Fetch value for key"
 	           (argument 'channel help: "Channel to fetch messages")))
 
-  (def lc
-    (command 'lc help: "list channels"))
+  (def channels
+    (command 'channel help: "list channels"))
 
   (def ic
     (command 'ic help: "list channels"))
@@ -61,7 +64,7 @@
                     cs
                     dbg
                     ic
-                    lc
+                    channels
                     ls
                     msgs
                     st
@@ -74,7 +77,7 @@
        (cs))
       ((dbg)
        (dbg .tag))
-      ((lc)
+      ((channels)
        (lc))
       ((ic)
        (index-channels))
@@ -85,4 +88,7 @@
       ((msgs)
        (msgs .channel))
       ((st)
-       (st)))))
+       (st))
+      ((ts)
+       (ts))
+       )))

@@ -190,7 +190,7 @@
   (if (hash-table? msg)
     (let-hash msg
       (unless .?text
-        (displayln "Missing text: " (hash->string msg)))
+        (dp "Missing text: " (hash->string msg)))
 
       (let ((h (hash
                 (text (or .?text "File Uploaded"))))
@@ -199,7 +199,6 @@
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
 
-        ;; (unless (getenv "osro" #f)
         (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
         (when (and .?team .?user)
@@ -285,6 +284,19 @@
                           ] outs))))
     (style-output outs "org-mode")))
 
+(def (ts)
+  (let ((outs [[ "Team" "Members" ]])
+        (teams (list-teams)))
+    (for (team teams)
+      (let ((th (db-get (format "t~a~a" delim team))))
+        (when (hash-table? th)
+          (let-hash th
+            (set! outs (cons [
+                              .$name
+                              (length .$members)
+                              ] outs))))))
+    (style-output outs "org-mode")))
+
 (def (msgs channel)
   (let* ((outs [[ "Date" "Name" "Text" ]])
          (ch (db-get (format "n~a~a" delim channel)))
@@ -327,6 +339,10 @@
         (display "no index found")
         (index-channels)
         (db-get index)))))
+
+(def (list-teams)
+  (let ((teams (uniq-by-nth-prefix "t" delim 1)))
+    teams))
 
 (def (uniq-by-nth-prefix key delim pos)
   (dp (format ">-- uniq-by-nth-prefix: ~a" key))
