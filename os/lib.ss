@@ -16,6 +16,7 @@
   :std/misc/threads
   :std/pregexp
   :std/srfi/1
+  :std/srfi/19
   :std/srfi/95
   :std/sugar
   :std/text/hex
@@ -161,7 +162,7 @@
   (leveldb-key? db (format "~a" key)))
 
 (def (db-write)
-  (dp "in db-write")
+   (dp "in db-write")
   (leveldb-write db wb))
 
 (def (db-close)
@@ -281,8 +282,9 @@
              (fields (pregexp-split delim entry))
              (user (nth 3 fields))
              (date (nth 2 fields)))
+        (displayln "date is: " date " and type is " (##type-id date))
         (set! outs (cons [
-                           date
+                           (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" date)))))
                            user
                            (let-hash msg .?text)
                            ] outs))))
@@ -321,8 +323,6 @@
         (let ((k (utf8->string (leveldb-iterator-key itor))))
           (if (pregexp-match key k)
             (let ((mid (nth pos (pregexp-split delim k))))
-              (displayln "key: " key " matches k: " k)
-              (displayln (member mid res))
               (unless (member mid res)
                 (set! res (cons mid res)))
 	            (leveldb-iterator-next itor)
