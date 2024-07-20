@@ -40,7 +40,7 @@
     (command 'cs help: "Channel Message counts"))
 
   (def ts
-    (command 'cs help: "Team member counts"))
+    (command 'ts help: "Team member counts"))
 
   (def msgs
     (command 'msgs help: "Fetch value for key"
@@ -49,15 +49,23 @@
   (def words
     (command 'words help: "List all words in the index"))
 
-
   (def channels
     (command 'channel help: "list channels"))
 
   (def ic
-    (command 'ic help: "list channels"))
+    (command 'ic help: "index channels"))
+
+  (def it
+    (command 'it help: "index teams"))
+
+  (def iw
+    (command 'iw help: "index words"))
 
   (def ls
     (command 'ls help: "list all records"))
+
+  (def teams
+    (command 'teams help: "list teams"))
 
   (def st
     (command 'st help: "Show total db entry count"))
@@ -65,15 +73,20 @@
   (call-with-getopt process-args args
 		                program: "os"
 		                help: "Slack Channel log parser"
+                    channels
                     cs
                     dbg
                     ic
-                    channels
+                    it
+                    iw
+                    load
                     ls
                     msgs
-                    words
                     st
-                    load))
+                    teams
+                    ts
+                    words
+                    ))
 
 (def (process-args cmd opt)
   (let-hash opt
@@ -84,8 +97,14 @@
        (dbg .tag))
       ((channels)
        (lc))
+      ((teams)
+       (lt))
+      ((iw)
+       (index-words))
       ((ic)
        (index-channels))
+      ((it)
+       (index-teams))
       ((ls)
        (list-records))
       ((load)

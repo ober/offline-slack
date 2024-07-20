@@ -194,32 +194,64 @@
 
       (let ((h (hash
                 (text (or .?text "File Uploaded"))))
-            (req-id (format "m~a~a~a~a~a~a" delim channel delim .?ts delim (or .?user .?sub_type .?client_msg_id .?username .?bot_id))))
+            (req-id (format "m~a~a~a~a~a~a" delim channel delim (or .?user .?username .?bod_id .?client_msg_id .?sub_type) delim .?ts)))
+
+        ;; (when (and .?team .?user)
+        ;;   (let ((key (format "t~a~a" delim .team)))
+        ;;     (if (db-key? key)
+        ;;       (let ((th (db-get key)))
+        ;;         (when (hash-table? th)
+        ;;           (let-hash th
+        ;;             (unless (member ..user .$members)
+        ;;               (db-put key (hash
+        ;;                            ("members" (cons ..user .$members))
+        ;;                            ("name" ..team)))))))
+        ;;       (begin ;; no key
+        ;;         (db-put key (hash
+        ;;                      ("members"  [.$user])
+        ;;                      ("name" .team)))))))
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
 
         (set! write-back-count (+ write-back-count 1))
         (db-batch req-id h)
-        (when .?text
-          (let ((words (pregexp-split "[ \t\n\r]+" .text)))
-            (for (word words)
-              (register-word word req-id))))
 
-        (when (and .?team .?user)
-          (let ((key (format "t|~a" .team)))
-            (if (db-key? key)
-              (let ((th (db-get key)))
-                (when (hash-table? th)
-                  (let-hash th
-                    (unless (member ..user .$members)
-                      (db-put key (hash
-                                   ("members" (cons ..user .$members))
-                                   ("name" .$name)))))))
-              (begin ;; no key
-                (db-put key (hash
-                             ("members" (list .$user))
-                             ("name" .team)))))))))))
+
+        ))))
+
+(def (index-teams)
+  (let ((entries (lookup-keys (format "m~a" delim))))
+    (for (entry entries)
+      (display ".")
+      (when (hash-table? entry)
+        (let-hash entry
+          (when (and .?team .?user)
+            (let ((key (format "t~a~a" delim .team)))
+              (if (db-key? key)
+                (let ((th (db-get key)))
+                  (when (hash-table? th)
+                    (let-hash th
+                      (unless (member ..user .$members)
+                        (db-put key (hash
+                                     ("members" (cons ..user .$members))
+                                     ("name" .$name)))))))
+                (begin ;; no key
+                  (db-put key (hash
+                               ("members" (list .$user))
+                               ("name" .team))))))))))))
+
+(def (index-words)
+  (let ((messages (lookup-keys (format "m~a" delim))))
+    (displayln "done fetching messages")
+    (for (message messages)
+      (let ((txt (db-get message)))
+        (when (hash-table? txt)
+          (let-hash txt
+            (when .?text
+              (let ((words (pregexp-split "[ \t\n\r]+" .text)))
+                (for (word words)
+                  (register-word word message))))))))))
 
 (def (register-word word req-id)
   (let* ((key (format "w~a~a" delim word))
@@ -229,7 +261,6 @@
         (when (hash-table? msgs)
           (let-hash msgs
             (unless (member req-id .$messages string-ci=?)
-              (displayln "word: " word " not in messages")
               (db-put key (hash
                            ("messages" (cons req-id .$messages))))
               ))))
@@ -364,6 +395,9 @@
         (display "no index found")
         (index-channels)
         (db-get index)))))
+
+(def (lt)
+  (for-each displayln (list-teams)))
 
 (def (list-teams)
   (let ((teams (uniq-by-nth-prefix "t" delim 1)))
