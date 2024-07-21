@@ -18,6 +18,7 @@
   :std/srfi/1
   (only-in :std/srfi/19 date->string)
   :std/srfi/95
+  (only-in :std/srfi/132 list-sort)
   :std/sugar
   :std/text/hex
   :std/text/json
@@ -107,7 +108,7 @@
 	        (count 0))
       (call-with-input-file file
 	      (lambda (file-input)
-          (let* ((channel-hash (path-strip-extension (path-strip-directory file)))
+          (let* ((ch (path-strip-extension (path-strip-directory file)))
                  (data (load-slack-file file-input)))
 
             (when (hash-table? data)
@@ -115,10 +116,10 @@
                 (when (and .?messages (list? .?messages) (> (length .?messages) 0))
                   (for (msg .?messages)
                     (set! count (+ count 1))
-                    (process-msg channel-hash .?name msg))
-                  (db-batch (format "ch~a~a" delim channel-hash) .?name)
-                  (db-batch (format "n~a~a" delim .?name) channel-hash)
-                  (mark-file-processed channel-hash)))))))
+                    (process-msg ch .?name msg))
+                  (db-batch (format "ch~a~a" delim ch) .?name)
+                  (db-batch (format "n~a~a" delim .?name) ch)
+                  (mark-file-processed ch)))))))
 
       (let ((delta (- (time->seconds (current-time)) btime)))
         (displayln
@@ -163,7 +164,7 @@
   (leveldb-key? db (format "~a" key)))
 
 (def (db-write)
-   (dp "in db-write")
+  (dp "in db-write")
   (leveldb-write db wb))
 
 (def (db-close)
@@ -195,7 +196,16 @@
 
       (let ((h (hash
                 (text (or .?text "File Uploaded"))))
-            (req-id (format "m~a~a~a~a~a~a" delim channel delim (or .?user .?username .?bod_id .?client_msg_id .?sub_type) delim .?ts)))
+            (req-id (format "m~a~a~a~a~a~a"
+                            delim
+                            channel
+                            delim
+                            (or .?user .?username .?bod_id .?client_msg_id .?sub_type)
+                            delim (or .?ts 0))))
+
+        (when (and .?team name)
+          (db-batch (format "tn~a~a~a~a" delim .team delim name) #t))
+        (db-batch req-id h)
 
         (when (and .?team .?user)
           (let ((key (format "tu~a~a~a~a" delim .team delim .user)))
@@ -205,9 +215,6 @@
           (displayln (hash->string msg)))
 
         (set! write-back-count (+ write-back-count 1))
-        (when (and .?team name)
-          (db-batch (format "tn~a~a~a~a" delim .team delim name) #t))
-        (db-batch req-id h)
 
         ))))
 
@@ -256,9 +263,9 @@
                            ("messages" (cons req-id .$messages))))
               ))))
 
-        (begin ;; no key for word
-          (db-put key (hash
-                       ("messages" [req-id])))))))
+      (begin ;; no key for word
+        (db-put key (hash
+                     ("messages" [req-id])))))))
 
 (def (words)
   (let ((werds (lookup-keys (format "w~a" delim))))
@@ -340,16 +347,15 @@
     (for (entry entries)
       (let* ((msg (db-get entry))
              (fields (pregexp-split delim entry))
-             (user (nth 3 fields))
-             (date (nth 2 fields)))
-        (displayln "date is: " date " and type is " (##type-id date))
+             (user (nth 2 fields))
+             (date (nth 3 fields)))
+        (displayln "date is " date)
         (set! outs (cons [
-                           (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" date)))))
-                           user
-                           (let-hash msg .?text)
-                           ] outs))))
+                          (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" date)))))
+                          user
+                          (let-hash msg .?text)
+                          ] outs))))
     (style-output outs "org-mode")))
-
 
 (def (lt)
   (for-each displayln (list-teams)))
@@ -386,9 +392,9 @@
               (unless (member k res)
                 (set! res (cons k res)))
 	            (leveldb-iterator-next itor)
-	          (lp res))
-	        res))
-      res))))
+	            (lp res))
+	          res))
+        res))))
 
 (def (sort-uniq-reverse lst)
   (reverse (unique! (sort! lst eq?))))
@@ -402,14 +408,15 @@
 
 ;; channels
 (def (lc)
-  (for-each displayln (list-channels)))
+  (for-each displayln (list-channels-names)))
 
 (def (cs)
   (let ((outs [[ "Channel" "Count" ]])
-        (channels (sort! (list-channels) eq?)))
+        (channels (list-channels-names)))
     (for (channel channels)
+      (displayln "doing: " channel)
       (let* ((ch (db-get (format "n~a~a" delim channel)))
-            (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
+             (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
         (set! outs (cons [
                           channel
                           count
@@ -431,7 +438,19 @@
 ;;       (db-put index results)
 ;;       (displayln "Index channels found nothing"))))
 
-(def (list-channels)
+(def (list-channels-hashes)
+  (let* ((key (format "ch~a" delim))
+         (channels (lookup-keys key))
+         (results []))
+
+    (for (channel channels)
+      (let* ((chan (pregexp-split delim channel))
+             (ch (nth 1 chan))
+             (name (db-get (format "~a~a" key ch))))
+        (set! results (cons ch results))))
+    results))
+
+(def (list-channels-names)
   (let* ((key (format "ch~a" delim))
          (channels (lookup-keys key))
          (results []))
@@ -440,5 +459,7 @@
       (let* ((chan (pregexp-split delim channel))
              (th (nth 1 chan))
              (name (db-get (format "~a~a" key th))))
-        (set! results (cons name results))))
-    results))
+        (set! results (cons (format "~a" name) results))))
+    (list-sort string=? results)))
+
+;; teams
