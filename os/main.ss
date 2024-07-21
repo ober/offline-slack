@@ -50,13 +50,7 @@
     (command 'words help: "List all words in the index"))
 
   (def channels
-    (command 'channel help: "list channels"))
-
-  (def ic
-    (command 'ic help: "index channels"))
-
-  (def it
-    (command 'it help: "index teams"))
+    (command 'channels help: "list channels"))
 
   (def iw
     (command 'iw help: "index words"))
@@ -76,8 +70,6 @@
                     channels
                     cs
                     dbg
-                    ic
-                    it
                     iw
                     load
                     ls
@@ -91,20 +83,16 @@
 (def (process-args cmd opt)
   (let-hash opt
     (case cmd
-      ((cs)
-       (cs))
       ((dbg)
        (dbg .tag))
       ((channels)
        (lc))
+      ((cs)
+       (cs))
       ((teams)
        (lt))
       ((iw)
        (index-words))
-      ((ic)
-       (index-channels))
-      ((it)
-       (index-teams))
       ((ls)
        (list-records))
       ((load)

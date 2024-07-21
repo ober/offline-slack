@@ -101,6 +101,7 @@
 
 (def (read-slack-file file)
   (ensure-db)
+  (displayln "trying to load " file)
   (unless (file-already-processed? file)
     (let ((btime (time->seconds (current-time)))
 	        (count 0))
@@ -114,7 +115,7 @@
                 (when (and .?messages (list? .?messages) (> (length .?messages) 0))
                   (for (msg .?messages)
                     (set! count (+ count 1))
-                    (process-msg channel-hash msg))
+                    (process-msg channel-hash .?name msg))
                   (db-batch (format "ch~a~a" delim channel-hash) .?name)
                   (db-batch (format "n~a~a" delim .?name) channel-hash)
                   (mark-file-processed channel-hash)))))))
@@ -186,7 +187,7 @@
   (let ((db-dir (or (getenv "slackdb" #f) (format "~a/slackdb/" (user-info-home (user-info (user-name)))))))
     (leveldb-repair-db (format "~a/records" db-dir))))
 
-(def (process-msg channel msg)
+(def (process-msg channel name msg)
   (if (hash-table? msg)
     (let-hash msg
       (unless .?text
@@ -196,50 +197,40 @@
                 (text (or .?text "File Uploaded"))))
             (req-id (format "m~a~a~a~a~a~a" delim channel delim (or .?user .?username .?bod_id .?client_msg_id .?sub_type) delim .?ts)))
 
-        ;; (when (and .?team .?user)
-        ;;   (let ((key (format "t~a~a" delim .team)))
-        ;;     (if (db-key? key)
-        ;;       (let ((th (db-get key)))
-        ;;         (when (hash-table? th)
-        ;;           (let-hash th
-        ;;             (unless (member ..user .$members)
-        ;;               (db-put key (hash
-        ;;                            ("members" (cons ..user .$members))
-        ;;                            ("name" ..team)))))))
-        ;;       (begin ;; no key
-        ;;         (db-put key (hash
-        ;;                      ("members"  [.$user])
-        ;;                      ("name" .team)))))))
+        (when (and .?team .?user)
+          (let ((key (format "tu~a~a~a~a" delim .team delim .user)))
+            (db-batch key #t)))
 
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
 
         (set! write-back-count (+ write-back-count 1))
+        (when (and .?team name)
+          (db-batch (format "tn~a~a~a~a" delim .team delim name) #t))
         (db-batch req-id h)
-
 
         ))))
 
-(def (index-teams)
-  (let ((entries (lookup-keys (format "m~a" delim))))
-    (for (entry entries)
-      (display ".")
-      (when (hash-table? entry)
-        (let-hash entry
-          (when (and .?team .?user)
-            (let ((key (format "t~a~a" delim .team)))
-              (if (db-key? key)
-                (let ((th (db-get key)))
-                  (when (hash-table? th)
-                    (let-hash th
-                      (unless (member ..user .$members)
-                        (db-put key (hash
-                                     ("members" (cons ..user .$members))
-                                     ("name" .$name)))))))
-                (begin ;; no key
-                  (db-put key (hash
-                               ("members" (list .$user))
-                               ("name" .team))))))))))))
+;; (def (index-teams)
+;;   (let ((entries (lookup-keys (format "m~a" delim))))
+;;     (for (entry entries)
+;;       (display ".")
+;;       (when (hash-table? entry)
+;;         (let-hash entry
+;;           (when (and .?team .?user)
+;;             (let ((key (format "t~a~a" delim .team)))
+;;               (if (db-key? key)
+;;                 (let ((th (db-get key)))
+;;                   (when (hash-table? th)
+;;                     (let-hash th
+;;                       (unless (member ..user .$members)
+;;                         (db-put key (hash
+;;                                      ("members" (cons ..user .$members))
+;;                                      ("name" .$name)))))))
+;;                 (begin ;; no key
+;;                   (db-put key (hash
+;;                                ("members" (list .$user))
+;;                                ("name" .team))))))))))))
 
 (def (index-words)
   (let ((messages (lookup-keys (format "m~a" delim))))
@@ -325,20 +316,7 @@
 (def (st)
   (displayln "Totals: " " records: " (countdb)))
 
-(def (lc)
-  (for-each displayln (list-channels)))
 
-(def (cs)
-  (let ((outs [[ "Channel" "Count" ]])
-        (channels (list-channels)))
-    (for (channel channels)
-      (let* ((ch (db-get (format "n~a~a" delim channel)))
-            (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
-        (set! outs (cons [
-                          channel
-                          count
-                          ] outs))))
-    (style-output outs "org-mode")))
 
 (def (ts)
   (let ((outs [[ "Team" "Members" ]])
@@ -372,47 +350,24 @@
                            ] outs))))
     (style-output outs "org-mode")))
 
-(def (index-channels)
-  (let ((index (format "channel~aindex" delim))
-        (results []))
-    (db-rm index)
-    (let ((entries
-           (sort-uniq-reverse
-            (uniq-by-nth-prefix (format "ch~a" delim) delim 1))))
-      (for (entry entries)
-        (let ((name (db-get (format "ch~a~a" delim entry))))
-          (when name
-            (set! results (cons name results))))))
-    (if (length>n? results 0)
-      (db-put index results)
-      (displayln "Index channels found nothing"))))
-
-(def (list-channels)
-  (let (index (format "channel~aindex" delim))
-    (if (db-key? index)
-      (db-get index)
-      (begin
-        (display "no index found")
-        (index-channels)
-        (db-get index)))))
 
 (def (lt)
   (for-each displayln (list-teams)))
 
 (def (list-teams)
-  (let ((teams (uniq-by-nth-prefix "t" delim 1)))
+  (let ((teams (uniq-by-nth-prefix (format "tn~a" delim) 1)))
     teams))
 
-(def (uniq-by-nth-prefix key delim pos)
-  (dp (format ">-- uniq-by-nth-prefix: ~a" key))
+(def (uniq-by-nth-prefix prefix pos)
+  (dp (format ">-- uniq-by-nth-prefix: ~a" prefix))
   (let ((itor (leveldb-iterator db)))
-    (leveldb-iterator-seek itor (format "~a" key))
+    (leveldb-iterator-seek itor (format "~a" prefix))
     (let lp ((res []))
       (if (leveldb-iterator-valid? itor)
         (let ((k (utf8->string (leveldb-iterator-key itor))))
-          (if (pregexp-match key k)
+          (if (pregexp-match prefix k)
             (let ((mid (nth pos (pregexp-split delim k))))
-              (unless (member mid res)
+              (unless (member mid res string-ci=?)
                 (set! res (cons mid res)))
 	            (leveldb-iterator-next itor)
 	            (lp res))
@@ -444,3 +399,46 @@
 
 (def (dbg key)
   (displayln (db-get key)))
+
+;; channels
+(def (lc)
+  (for-each displayln (list-channels)))
+
+(def (cs)
+  (let ((outs [[ "Channel" "Count" ]])
+        (channels (sort! (list-channels) eq?)))
+    (for (channel channels)
+      (let* ((ch (db-get (format "n~a~a" delim channel)))
+            (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
+        (set! outs (cons [
+                          channel
+                          count
+                          ] outs))))
+    (style-output outs "org-mode")))
+
+;; (def (index-channels)
+;;   (let ((index (format "channel~aindex" delim))
+;;         (results []))
+;;     (db-rm index)
+;;     (let ((entries
+;;            (sort-uniq-reverse
+;;             (uniq-by-nth-prefix (format "ch~a" delim) 1))))
+;;       (for (entry entries)
+;;         (let ((name (db-get (format "ch~a~a" delim entry))))
+;;           (when name
+;;             (set! results (cons name results))))))
+;;     (if (length>n? results 0)
+;;       (db-put index results)
+;;       (displayln "Index channels found nothing"))))
+
+(def (list-channels)
+  (let* ((key (format "ch~a" delim))
+         (channels (lookup-keys key))
+         (results []))
+
+    (for (channel channels)
+      (let* ((chan (pregexp-split delim channel))
+             (th (nth 1 chan))
+             (name (db-get (format "~a~a" key th))))
+        (set! results (cons name results))))
+    results))
