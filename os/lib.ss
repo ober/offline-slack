@@ -200,7 +200,7 @@
                             delim
                             channel
                             delim
-                            (or .?user .?username .?bod_id .?client_msg_id .?sub_type)
+                            (or .?user .?username .?bod_id .?client_msg_id .?sub_type "Unknown")
                             delim (or .?ts 0))))
 
         (when (and .?team name)
@@ -323,8 +323,6 @@
 (def (st)
   (displayln "Totals: " " records: " (countdb)))
 
-
-
 (def (ts)
   (let ((outs [[ "Team" "Members" ]])
         (teams (list-teams)))
@@ -349,7 +347,7 @@
              (fields (pregexp-split delim entry))
              (user (nth 2 fields))
              (date (nth 3 fields)))
-        (displayln "date is " date)
+        (displayln "entry is " entry " msg: " msg)
         (set! outs (cons [
                           (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" date)))))
                           user
