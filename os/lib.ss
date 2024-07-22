@@ -240,32 +240,24 @@
 ;;                                ("name" .team))))))))))))
 
 (def (index-words)
-  (let ((messages (lookup-keys (format "m~a" delim))))
+  (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
-    (for (message messages)
-      (let ((txt (db-get message)))
-        (when (hash-table? txt)
-          (let-hash txt
-            (when .?text
-              (let ((words (pregexp-split "[ \t\n\r]+" .text)))
-                (for (word words)
-                  (register-word word message))))))))))
+    (for (channel channels)
+      (let ((messages (lookup-keys (format "m~a~a~a" delim (nth 1 (pregexp-split delim channel)) delim))))
+        (displayln "messages: " (length messages) " for channel: " channel)
+        (db-write)
+        (for (message messages)
+          (let ((value (db-get message)))
+            (when (hash-table? value)
+              (let-hash value
+                (when .?text
+                  (let ((words (pregexp-split "[ \t\n\r]+" .text)))
+                    (for (word words)
+                      (register-word word message))))))))))))
 
 (def (register-word word req-id)
-  (let* ((key (format "w~a~a" delim word))
-         (wh (db-key? key)))
-    (if wh
-      (let ((msgs (db-get key)))
-        (when (hash-table? msgs)
-          (let-hash msgs
-            (unless (member req-id .$messages string-ci=?)
-              (db-put key (hash
-                           ("messages" (cons req-id .$messages))))
-              ))))
-
-      (begin ;; no key for word
-        (db-put key (hash
-                     ("messages" [req-id])))))))
+  (let* ((key (format "w~a~a~a~a" delim word delim req-id)))
+    (db-batch key #t)))
 
 (def (words)
   (let ((werds (lookup-keys (format "w~a" delim))))
@@ -349,7 +341,7 @@
              (date (nth 3 fields)))
         (displayln "entry is " entry " msg: " msg)
         (set! outs (cons [
-                          (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" date)))))
+                          (date-parse-epoch date)
                           user
                           (let-hash msg .?text)
                           ] outs))))
@@ -461,3 +453,30 @@
     (list-sort string=? results)))
 
 ;; teams
+
+(def (search word)
+  (let ((outs [[ "Date" "Name" "Text" ]])
+        (matches (lookup-keys (format "w~a~a~a" delim word delim))))
+    (for (entry matches)
+      (let* ((fields (pregexp-split delim entry))
+             (user (nth 4 fields))
+             (head (nth 2 fields))
+             (ch (nth 3 fields))
+             (date (nth 5 fields))
+             (req-id (format "~a~a~a~a~a~a~a"
+                             head delim
+                             ch delim
+                             user delim
+                             date))
+             (message (db-get req-id)))
+        (when (hash-table? message)
+          (let-hash message
+            (set! outs (cons [
+                              (date-parse-epoch date)
+                              user
+                              .?text
+                              ] outs))))))
+    (style-output outs "org-mode")))
+
+(def (date-parse-epoch epoch)
+  (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" epoch))))))

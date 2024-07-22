@@ -46,6 +46,10 @@
     (command 'msgs help: "Fetch value for key"
 	           (argument 'channel help: "Channel to fetch messages")))
 
+  (def search
+    (command 'search help: "Search for Word"
+	           (argument 'word help: "Search and fetch messages with word")))
+
   (def words
     (command 'words help: "List all words in the index"))
 
@@ -74,6 +78,7 @@
                     load
                     ls
                     msgs
+                    search
                     st
                     teams
                     ts
@@ -101,8 +106,11 @@
        (msgs .channel))
       ((st)
        (st))
+      ((search)
+       (search .word))
       ((ts)
        (ts))
+
       ((words)
        (words))
        )))
