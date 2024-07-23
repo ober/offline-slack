@@ -462,7 +462,7 @@
              (user (nth 4 fields))
              (head (nth 2 fields))
              (ch (nth 3 fields))
-             (cn (db-get ch))
+             (cn (db-get (format "ch~a" ch)))
              (date (nth 5 fields))
              (req-id (format "~a~a~a~a~a~a~a"
                              head delim
