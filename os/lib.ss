@@ -243,6 +243,7 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
+      (if
       (let ((messages (lookup-keys (format "m~a~a~a" delim (nth 1 (pregexp-split delim channel)) delim))))
         (displayln "messages: " (length messages) " for channel: " channel)
         (db-write)
@@ -339,7 +340,6 @@
              (fields (pregexp-split delim entry))
              (user (nth 2 fields))
              (date (nth 3 fields)))
-        (displayln "entry is " entry " msg: " msg)
         (set! outs (cons [
                           (date-parse-epoch date)
                           user
@@ -455,25 +455,26 @@
 ;; teams
 
 (def (search word)
-  (let ((outs [[ "Date" "Name" "Text" ]])
+  (let ((outs [[ "Date" "Channel" "Name" "Text" ]])
         (matches (lookup-keys (format "w~a~a~a" delim word delim))))
     (for (entry matches)
       (let* ((fields (pregexp-split delim entry))
              (user (nth 4 fields))
              (head (nth 2 fields))
              (ch (nth 3 fields))
-             (cn (db-get (format "ch~a" ch)))
+             (cn (db-get (format "ch~a~a" delim ch)))
              (date (nth 5 fields))
              (req-id (format "~a~a~a~a~a~a~a"
                              head delim
-                             cn delim
+                             ch delim
                              user delim
                              date))
              (message (db-get req-id)))
-        (when (hash-table? message)
+	      (when (hash-table? message)
           (let-hash message
             (set! outs (cons [
                               (date-parse-epoch date)
+                              cn
                               user
                               .?text
                               ] outs))))))

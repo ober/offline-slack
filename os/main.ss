@@ -42,6 +42,9 @@
   (def ts
     (command 'ts help: "Team member counts"))
 
+  (def repair
+    (command 'repair help: "Repair the db"))
+
   (def msgs
     (command 'msgs help: "Fetch value for key"
 	           (argument 'channel help: "Channel to fetch messages")))
@@ -77,6 +80,7 @@
                     iw
                     load
                     ls
+                    repair
                     msgs
                     search
                     st
@@ -102,6 +106,8 @@
        (list-records))
       ((load)
        (load-slack .directory))
+      ((repair)
+       (repairdb))
       ((msgs)
        (msgs .channel))
       ((st)
@@ -110,7 +116,6 @@
        (search .word))
       ((ts)
        (ts))
-
       ((words)
        (words))
        )))
