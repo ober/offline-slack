@@ -462,10 +462,11 @@
              (user (nth 4 fields))
              (head (nth 2 fields))
              (ch (nth 3 fields))
+             (cn (db-get ch))
              (date (nth 5 fields))
              (req-id (format "~a~a~a~a~a~a~a"
                              head delim
-                             ch delim
+                             cn delim
                              user delim
                              date))
              (message (db-get req-id)))
