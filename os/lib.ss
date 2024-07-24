@@ -251,7 +251,7 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
-      (let ((keys (keylike (format "w~aa~am~a~a#" delim delim channel delim)))
+      (let* ((keys (keylike (format "w~aa~am~a~a#" delim delim channel delim)))
             (count (length keys)))
         (displayln "Count is " count " Channel is " channel)
         (unless (= count 0)
