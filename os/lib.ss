@@ -251,17 +251,21 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
-      (let ((messages (lookup-keys (format "m~a~a~a" delim (nth 1 (pregexp-split delim channel)) delim))))
-        (displayln "messages: " (length messages) " for channel: " channel)
-        (db-write)
-        (for (message messages)
-          (let ((value (db-get message)))
-            (when (hash-table? value)
-              (let-hash value
-                (when .?text
-                  (let ((words (pregexp-split "[ \t\n\r]+" .text)))
-                    (for (word words)
-                      (register-word word message))))))))))))
+      (let ((count (length (keylike (format "w#a#m#~a#" channel)))))
+        (unless (= count 0)
+          (displayln "skipping " channel))
+        (when (= count 0)
+        (let (messages (lookup-keys (format "m~a~a~a" delim (nth 1 (pregexp-split delim channel)) delim)))
+          (displayln "messages: " (length messages) " for channel: " channel)
+          (db-write)
+          (for (message messages)
+            (let ((value (db-get message)))
+              (when (hash-table? value)
+                (let-hash value
+                  (when .?text
+                    (let ((words (pregexp-split "[ \t\n\r]+" .text)))
+                      (for (word words)
+                        (register-word word message))))))))))))
 
 (def (register-word word req-id)
   (let* ((key (format "w~a~a~a~a" delim word delim req-id)))
