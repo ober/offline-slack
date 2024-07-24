@@ -251,7 +251,7 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
-      (let* ((pat (format "w~aa~am~a~a#"
+      (let* ((pat (format "w~aa~am~a~a~a"
                           delim
                           delim
                           delim
