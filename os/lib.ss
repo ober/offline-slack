@@ -248,7 +248,6 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
-      (if
       (let ((messages (lookup-keys (format "m~a~a~a" delim (nth 1 (pregexp-split delim channel)) delim))))
         (displayln "messages: " (length messages) " for channel: " channel)
         (db-write)
