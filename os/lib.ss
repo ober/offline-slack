@@ -255,7 +255,13 @@
         (unless (= count 0)
           (displayln "skipping " channel))
         (when (= count 0)
-          (let (messages (lookup-keys (format "m~a~a~a" delim (nth 1 (pregexp-split delim channel)) delim)))
+          (displayln "doing " channel " count is " count)
+          (let ((messages (lookup-keys
+                           (format
+                            "m~a~a~a"
+                            delim
+                            (nth 1 (pregexp-split delim channel))
+                            delim))))
             (displayln "messages: " (length messages) " for channel: " channel)
             (db-write)
             (for (message messages)
@@ -267,229 +273,229 @@
                         (for (word words)
                           (register-word word message))))))))))))))
 
-    (def (register-word word req-id)
-      (let* ((key (format "w~a~a~a~a" delim word delim req-id)))
-        (db-batch key #t)))
+(def (register-word word req-id)
+  (let* ((key (format "w~a~a~a~a" delim word delim req-id)))
+    (db-batch key #t)))
 
-    (def (words)
-      (let ((werds (lookup-keys (format "w~a" delim))))
-        (for-each displayln werds)))
+(def (words)
+  (let ((werds (lookup-keys (format "w~a" delim))))
+    (for-each displayln werds)))
 
-    (def (db-batch key value)
-      (unless (string? key) (dp (format "key: ~a val: ~a" (##type-id key) (##type-id value))))
-      (leveldb-writebatch-put wb key (marshal-value value)))
+(def (db-batch key value)
+  (unless (string? key) (dp (format "key: ~a val: ~a" (##type-id key) (##type-id value))))
+  (leveldb-writebatch-put wb key (marshal-value value)))
 
-    (def (db-put key value)
-      (dp (format "<----> db-put: key: ~a val: ~a" key value))
-      (leveldb-put db key (marshal-value value)))
+(def (db-put key value)
+  (dp (format "<----> db-put: key: ~a val: ~a" key value))
+  (leveldb-put db key (marshal-value value)))
 
-    (def (flush-all?)
-      (dp (format "write-back-count && max-wb-size ~a ~a" write-back-count max-wb-size))
-      (when (> write-back-count max-wb-size)
-        (displayln "writing.... " write-back-count)
-        (let ((old wb))
-          (spawn
-           (lambda ()
-	           (leveldb-write db old)))
-          (set! wb (leveldb-writebatch))
-          (set! write-back-count 0))))
+(def (flush-all?)
+  (dp (format "write-back-count && max-wb-size ~a ~a" write-back-count max-wb-size))
+  (when (> write-back-count max-wb-size)
+    (displayln "writing.... " write-back-count)
+    (let ((old wb))
+      (spawn
+       (lambda ()
+	       (leveldb-write db old)))
+      (set! wb (leveldb-writebatch))
+      (set! write-back-count 0))))
 
-    (def (ls)
-      (list-records))
+(def (ls)
+  (list-records))
 
-    (def (list-records)
-      "Print all records"
-      (let (itor (leveldb-iterator db))
-        (leveldb-iterator-seek-first itor)
-        (let lp ()
-          (leveldb-iterator-next itor)
-          (let ((key (utf8->string (leveldb-iterator-key itor)))
-                (val (unmarshal-value (leveldb-iterator-value itor))))
-            (if (hash-table? val)
-              (displayln (format "k: ~a v: ~a" key (hash->list val)))
-              (displayln (format "k: ~a v: ~a" key val))))
-          (when (leveldb-iterator-valid? itor)
-            (lp)))))
+(def (list-records)
+  "Print all records"
+  (let (itor (leveldb-iterator db))
+    (leveldb-iterator-seek-first itor)
+    (let lp ()
+      (leveldb-iterator-next itor)
+      (let ((key (utf8->string (leveldb-iterator-key itor)))
+            (val (unmarshal-value (leveldb-iterator-value itor))))
+        (if (hash-table? val)
+          (displayln (format "k: ~a v: ~a" key (hash->list val)))
+          (displayln (format "k: ~a v: ~a" key val))))
+      (when (leveldb-iterator-valid? itor)
+        (lp)))))
 
-    (def (countdb)
-      "Get a count of how many records are in db"
-      (let ((mod 1000000)
-	          (itor (leveldb-iterator db)))
-        (leveldb-iterator-seek-first itor)
-        (let lp ((count 1))
-          (when (= (modulo count mod) 0)
-	          (displayln count))
-          (leveldb-iterator-next itor)
-          (if (leveldb-iterator-valid? itor)
-            (lp (1+ count))
-            count))))
+(def (countdb)
+  "Get a count of how many records are in db"
+  (let ((mod 1000000)
+	      (itor (leveldb-iterator db)))
+    (leveldb-iterator-seek-first itor)
+    (let lp ((count 1))
+      (when (= (modulo count mod) 0)
+	      (displayln count))
+      (leveldb-iterator-next itor)
+      (if (leveldb-iterator-valid? itor)
+        (lp (1+ count))
+        count))))
 
-    (def (st)
-      (displayln "Totals: " " records: " (countdb)))
+(def (st)
+  (displayln "Totals: " " records: " (countdb)))
 
-    (def (ts)
-      (let ((outs [[ "Team" "Members" ]])
-            (teams (list-teams)))
-        (for (team teams)
-          (let ((th (db-get (format "t~a~a" delim team))))
-            (when (hash-table? th)
-              (let-hash th
-                (set! outs (cons [
-                                  .$name
-                                  (length .$members)
-                                  ] outs))))))
-        (style-output outs "org-mode")))
+(def (ts)
+  (let ((outs [[ "Team" "Members" ]])
+        (teams (list-teams)))
+    (for (team teams)
+      (let ((th (db-get (format "t~a~a" delim team))))
+        (when (hash-table? th)
+          (let-hash th
+            (set! outs (cons [
+                              .$name
+                              (length .$members)
+                              ] outs))))))
+    (style-output outs "org-mode")))
 
-    (def (msgs channel)
-      (let* ((outs [[ "Date" "Name" "Text" ]])
-             (ch (db-get (format "n~a~a" delim channel)))
-             (pat (format "m~a~a~a" delim ch delim))
-             (entries (lookup-keys pat)))
+(def (msgs channel)
+  (let* ((outs [[ "Date" "Name" "Text" ]])
+         (ch (db-get (format "n~a~a" delim channel)))
+         (pat (format "m~a~a~a" delim ch delim))
+         (entries (lookup-keys pat)))
 
-        (for (entry entries)
-          (let* ((msg (db-get entry))
-                 (fields (pregexp-split delim entry))
-                 (user (nth 2 fields))
-                 (date (nth 3 fields)))
+    (for (entry entries)
+      (let* ((msg (db-get entry))
+             (fields (pregexp-split delim entry))
+             (user (nth 2 fields))
+             (date (nth 3 fields)))
+        (set! outs (cons [
+                          (date-parse-epoch date)
+                          user
+                          (let-hash msg .?text)
+                          ] outs))))
+    (style-output outs "org-mode")))
+
+(def (lt)
+  (for-each displayln (list-teams)))
+
+(def (list-teams)
+  (let ((teams (uniq-by-nth-prefix (format "tn~a" delim) 1)))
+    teams))
+
+(def (uniq-by-nth-prefix prefix pos)
+  (dp (format ">-- uniq-by-nth-prefix: ~a" prefix))
+  (let ((itor (leveldb-iterator db)))
+    (leveldb-iterator-seek itor (format "~a" prefix))
+    (let lp ((res []))
+      (if (leveldb-iterator-valid? itor)
+        (let ((k (utf8->string (leveldb-iterator-key itor))))
+          (if (pregexp-match prefix k)
+            (let ((mid (nth pos (pregexp-split delim k))))
+              (unless (member mid res string-ci=?)
+                (set! res (cons mid res)))
+	            (leveldb-iterator-next itor)
+	            (lp res))
+	          res))
+        res))))
+
+(def (lookup-keys key)
+  (dp (format ">-- uniq-by-nth-prefix: ~a" key))
+  (let ((itor (leveldb-iterator db)))
+    (leveldb-iterator-seek itor (format "~a" key))
+    (let lp ((res []))
+      (if (leveldb-iterator-valid? itor)
+        (let ((k (utf8->string (leveldb-iterator-key itor))))
+          (if (pregexp-match key k)
+            (begin
+              (unless (member k res)
+                (set! res (cons k res)))
+	            (leveldb-iterator-next itor)
+	            (lp res))
+	          res))
+        res))))
+
+(def (sort-uniq-reverse lst)
+  (reverse (unique! (sort! lst eq?))))
+
+(def (db-rm key)
+  (dp (format "<----> db-rm: key: ~a" key))
+  (leveldb-delete db key))
+
+(def (dbg key)
+  (displayln (db-get key)))
+
+;; channels
+(def (lc)
+  (for-each displayln (list-channels-names)))
+
+(def (cs)
+  (let ((outs [[ "Channel" "Count" ]])
+        (channels (list-channels-names)))
+    (for (channel channels)
+      (displayln "doing: " channel)
+      (let* ((ch (db-get (format "n~a~a" delim channel)))
+             (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
+        (set! outs (cons [
+                          channel
+                          count
+                          ] outs))))
+    (style-output outs "org-mode")))
+
+;; (def (index-channels)
+;;   (let ((index (format "channel~aindex" delim))
+;;         (results []))
+;;     (db-rm index)
+;;     (let ((entries
+;;            (sort-uniq-reverse
+;;             (uniq-by-nth-prefix (format "ch~a" delim) 1))))
+;;       (for (entry entries)
+;;         (let ((name (db-get (format "ch~a~a" delim entry))))
+;;           (when name
+;;             (set! results (cons name results))))))
+;;     (if (length>n? results 0)
+;;       (db-put index results)
+;;       (displayln "Index channels found nothing"))))
+
+(def (list-channels-hashes)
+  (let* ((key (format "ch~a" delim))
+         (channels (lookup-keys key))
+         (results []))
+
+    (for (channel channels)
+      (let* ((chan (pregexp-split delim channel))
+             (ch (nth 1 chan))
+             (name (db-get (format "~a~a" key ch))))
+        (set! results (cons ch results))))
+    results))
+
+(def (list-channels-names)
+  (let* ((key (format "ch~a" delim))
+         (channels (lookup-keys key))
+         (results []))
+
+    (for (channel channels)
+      (let* ((chan (pregexp-split delim channel))
+             (th (nth 1 chan))
+             (name (db-get (format "~a~a" key th))))
+        (set! results (cons (format "~a" name) results))))
+    (list-sort string=? results)))
+
+;; teams
+
+(def (search word)
+  (let ((outs [[ "Date" "Channel" "Name" "Text" ]])
+        (matches (lookup-keys (format "w~a~a~a" delim word delim))))
+    (for (entry matches)
+      (let* ((fields (pregexp-split delim entry))
+             (user (nth 4 fields))
+             (head (nth 2 fields))
+             (ch (nth 3 fields))
+             (cn (db-get (format "ch~a~a" delim ch)))
+             (date (nth 5 fields))
+             (req-id (format "~a~a~a~a~a~a~a"
+                             head delim
+                             ch delim
+                             user delim
+                             date))
+             (message (db-get req-id)))
+	      (when (hash-table? message)
+          (let-hash message
             (set! outs (cons [
                               (date-parse-epoch date)
+                              cn
                               user
-                              (let-hash msg .?text)
-                              ] outs))))
-        (style-output outs "org-mode")))
+                              .?text
+                              ] outs))))))
+    (style-output outs "org-mode")))
 
-    (def (lt)
-      (for-each displayln (list-teams)))
-
-    (def (list-teams)
-      (let ((teams (uniq-by-nth-prefix (format "tn~a" delim) 1)))
-        teams))
-
-    (def (uniq-by-nth-prefix prefix pos)
-      (dp (format ">-- uniq-by-nth-prefix: ~a" prefix))
-      (let ((itor (leveldb-iterator db)))
-        (leveldb-iterator-seek itor (format "~a" prefix))
-        (let lp ((res []))
-          (if (leveldb-iterator-valid? itor)
-            (let ((k (utf8->string (leveldb-iterator-key itor))))
-              (if (pregexp-match prefix k)
-                (let ((mid (nth pos (pregexp-split delim k))))
-                  (unless (member mid res string-ci=?)
-                    (set! res (cons mid res)))
-	                (leveldb-iterator-next itor)
-	                (lp res))
-	              res))
-            res))))
-
-    (def (lookup-keys key)
-      (dp (format ">-- uniq-by-nth-prefix: ~a" key))
-      (let ((itor (leveldb-iterator db)))
-        (leveldb-iterator-seek itor (format "~a" key))
-        (let lp ((res []))
-          (if (leveldb-iterator-valid? itor)
-            (let ((k (utf8->string (leveldb-iterator-key itor))))
-              (if (pregexp-match key k)
-                (begin
-                  (unless (member k res)
-                    (set! res (cons k res)))
-	                (leveldb-iterator-next itor)
-	                (lp res))
-	              res))
-            res))))
-
-    (def (sort-uniq-reverse lst)
-      (reverse (unique! (sort! lst eq?))))
-
-    (def (db-rm key)
-      (dp (format "<----> db-rm: key: ~a" key))
-      (leveldb-delete db key))
-
-    (def (dbg key)
-      (displayln (db-get key)))
-
-    ;; channels
-    (def (lc)
-      (for-each displayln (list-channels-names)))
-
-    (def (cs)
-      (let ((outs [[ "Channel" "Count" ]])
-            (channels (list-channels-names)))
-        (for (channel channels)
-          (displayln "doing: " channel)
-          (let* ((ch (db-get (format "n~a~a" delim channel)))
-                 (count (length (lookup-keys (format "m~a~a~a" delim ch delim)))))
-            (set! outs (cons [
-                              channel
-                              count
-                              ] outs))))
-        (style-output outs "org-mode")))
-
-    ;; (def (index-channels)
-    ;;   (let ((index (format "channel~aindex" delim))
-    ;;         (results []))
-    ;;     (db-rm index)
-    ;;     (let ((entries
-    ;;            (sort-uniq-reverse
-    ;;             (uniq-by-nth-prefix (format "ch~a" delim) 1))))
-    ;;       (for (entry entries)
-    ;;         (let ((name (db-get (format "ch~a~a" delim entry))))
-    ;;           (when name
-    ;;             (set! results (cons name results))))))
-    ;;     (if (length>n? results 0)
-    ;;       (db-put index results)
-    ;;       (displayln "Index channels found nothing"))))
-
-    (def (list-channels-hashes)
-      (let* ((key (format "ch~a" delim))
-             (channels (lookup-keys key))
-             (results []))
-
-        (for (channel channels)
-          (let* ((chan (pregexp-split delim channel))
-                 (ch (nth 1 chan))
-                 (name (db-get (format "~a~a" key ch))))
-            (set! results (cons ch results))))
-        results))
-
-    (def (list-channels-names)
-      (let* ((key (format "ch~a" delim))
-             (channels (lookup-keys key))
-             (results []))
-
-        (for (channel channels)
-          (let* ((chan (pregexp-split delim channel))
-                 (th (nth 1 chan))
-                 (name (db-get (format "~a~a" key th))))
-            (set! results (cons (format "~a" name) results))))
-        (list-sort string=? results)))
-
-    ;; teams
-
-    (def (search word)
-      (let ((outs [[ "Date" "Channel" "Name" "Text" ]])
-            (matches (lookup-keys (format "w~a~a~a" delim word delim))))
-        (for (entry matches)
-          (let* ((fields (pregexp-split delim entry))
-                 (user (nth 4 fields))
-                 (head (nth 2 fields))
-                 (ch (nth 3 fields))
-                 (cn (db-get (format "ch~a~a" delim ch)))
-                 (date (nth 5 fields))
-                 (req-id (format "~a~a~a~a~a~a~a"
-                                 head delim
-                                 ch delim
-                                 user delim
-                                 date))
-                 (message (db-get req-id)))
-	          (when (hash-table? message)
-              (let-hash message
-                (set! outs (cons [
-                                  (date-parse-epoch date)
-                                  cn
-                                  user
-                                  .?text
-                                  ] outs))))))
-        (style-output outs "org-mode")))
-
-    (def (date-parse-epoch epoch)
-      (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" epoch))))))
+(def (date-parse-epoch epoch)
+  (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" epoch))))))
