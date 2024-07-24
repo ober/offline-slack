@@ -49,8 +49,8 @@
     (command 'msgs help: "Fetch value for key"
 	           (argument 'channel help: "Channel to fetch messages")))
 
-  (def keylike
-    (command 'keylike help: "Fetch all keys like partial"
+  (def kl
+    (command 'kl help: "Fetch all keys like partial"
 	           (argument 'partial help: "Key pattern to match to")))
 
   (def search
@@ -84,7 +84,7 @@
                     iw
                     load
                     ls
-                    keylike
+                    kl
                     repair
                     msgs
                     search
@@ -121,8 +121,8 @@
        (search .word))
       ((ts)
        (ts))
-      ((keylike)
-       (keylike .partial))
+      ((kl)
+       (kl .partial))
       ((words)
        (words))
       )))

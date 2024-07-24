@@ -218,10 +218,13 @@
 
         ))))
 
+(def (kl partial)
+  (for-each displayln (key-like partial)))
+
 (def (keylike partial)
   "Return all keys like partial."
   (let ((entries (lookup-keys partial)))
-    (for-each displayln entries)))
+    entries))
 
 ;; (def (index-teams)
 ;;   (let ((entries (lookup-keys (format "m~a" delim))))
