@@ -254,6 +254,7 @@
       (let* ((pat (format "w~aa~am~a~a#"
                           delim
                           delim
+                          delim
                           (nth 1 (pregexp-split delim channel))
                           delim))
              (keys (keylike pat))
