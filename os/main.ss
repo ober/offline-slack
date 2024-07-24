@@ -51,7 +51,7 @@
 
   (def keylike
     (command 'keylike help: "Fetch all keys like partial"
-	           (argument 'partial help: "Key pattern to match to"))
+	           (argument 'partial help: "Key pattern to match to")))
 
   (def search
     (command 'search help: "Search for Word"
@@ -125,4 +125,4 @@
        (keylike))
       ((words)
        (words))
-       )))
+      )))
