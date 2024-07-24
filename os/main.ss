@@ -122,7 +122,7 @@
       ((ts)
        (ts))
       ((keylike)
-       (keylike))
+       (keylike .partial))
       ((words)
        (words))
       )))
