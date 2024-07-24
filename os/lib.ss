@@ -251,7 +251,11 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
-      (let* ((pat (format "w~aa~am~a~a#" delim delim channel delim))
+      (let* ((pat (format "w~aa~am~a~a#"
+                          delim
+                          delim
+                          (nth 1 (pregexp-split delim channel))
+                          delim))
              (keys (keylike pat))
              (count (length keys)))
         (displayln "Count is " count " Channel is " channel " pat is " pat)
