@@ -259,7 +259,6 @@
                           delim))
              (keys (keylike pat))
              (count (length keys)))
-        (displayln "Count is " count " Channel is " channel " pat is " pat)
         (unless (= count 0)
           (displayln "skipping " channel))
         (when (= count 0)
