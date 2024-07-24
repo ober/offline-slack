@@ -219,7 +219,7 @@
         ))))
 
 (def (kl partial)
-  (for-each displayln (key-like partial)))
+  (for-each displayln (keylike partial)))
 
 (def (keylike partial)
   "Return all keys like partial."
