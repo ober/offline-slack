@@ -110,7 +110,6 @@
 	      (lambda (file-input)
           (let* ((ch (path-strip-extension (path-strip-directory file)))
                  (data (load-slack-file file-input)))
-
             (when (hash-table? data)
               (let-hash data
                 (when (and .?messages (list? .?messages) (> (length .?messages) 0))
@@ -251,11 +250,12 @@
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
-      (let* ((pat (format "w~aa~am~a~a~a"
+      (let* ((ch (nth 1 (pregexp-split delim channel)))
+             (pat (format "w~aa~am~a~a~a"
                           delim
                           delim
                           delim
-                          (nth 1 (pregexp-split delim channel))
+                          ch
                           delim))
              (keys (keylike pat))
              (count (length keys)))
@@ -267,10 +267,11 @@
                            (format
                             "m~a~a~a"
                             delim
-                            (nth 1 (pregexp-split delim channel))
+                            ch
                             delim))))
             (displayln "messages: " (length messages) " for channel: " channel)
             (db-write)
+            (db-batch (format "w~aXYZZ~a~a~a" delim delim ch delim) #t)
             (for (message messages)
               (let ((value (db-get message)))
                 (when (hash-table? value)
@@ -405,9 +406,9 @@
             (begin
               (unless (member k res)
                 (set! res (cons k res)))
-	            (leveldb-iterator-next itor)
-	            (lp res))
-	          res))
+                   (leveldb-iterator-next itor)
+                   (lp res))
+                 res))
         res))))
 
 (def (sort-uniq-reverse lst)
