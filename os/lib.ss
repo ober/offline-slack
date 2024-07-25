@@ -225,33 +225,12 @@
   (let ((entries (lookup-keys partial)))
     entries))
 
-;; (def (index-teams)
-;;   (let ((entries (lookup-keys (format "m~a" delim))))
-;;     (for (entry entries)
-;;       (display ".")
-;;       (when (hash-table? entry)
-;;         (let-hash entry
-;;           (when (and .?team .?user)
-;;             (let ((key (format "t~a~a" delim .team)))
-;;               (if (db-key? key)
-;;                 (let ((th (db-get key)))
-;;                   (when (hash-table? th)
-;;                     (let-hash th
-;;                       (unless (member ..user .$members)
-;;                         (db-put key (hash
-;;                                      ("members" (cons ..user .$members))
-;;                                      ("name" .$name)))))))
-;;                 (begin ;; no key
-;;                   (db-put key (hash
-;;                                ("members" (list .$user))
-;;                                ("name" .team))))))))))))
-
 (def (index-words)
   (let ((channels (lookup-keys (format "ch~a" delim))))
     (displayln "done fetching messages")
     (for (channel channels)
       (let* ((ch (nth 1 (pregexp-split delim channel)))
-             (pat (format "w~aa~am~a~a~a"
+             (pat (format "w~aXYZZ~am~a~a~a"
                           delim
                           delim
                           delim
