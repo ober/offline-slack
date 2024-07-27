@@ -230,8 +230,7 @@
     (displayln "done fetching messages")
     (for (channel channels)
       (let* ((ch (nth 1 (pregexp-split delim channel)))
-             (pat (format "w~aXYZZ~am~a~a~a"
-                          delim
+             (pat (format "w~aXYZZ~a~a~a"
                           delim
                           delim
                           ch
@@ -375,7 +374,7 @@
         res))))
 
 (def (lookup-keys key)
-  (dp (format ">-- uniq-by-nth-prefix: ~a" key))
+  (dp (format ">-- lookup-keys: ~a" key))
   (let ((itor (leveldb-iterator db)))
     (leveldb-iterator-seek itor (format "~a" key))
     (let lp ((res []))
