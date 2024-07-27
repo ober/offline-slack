@@ -216,7 +216,7 @@
         (when .?text
           (let ((words (pregexp-split "[ \t\n\r]+" .text)))
             (for (word words)
-              (register-word word message))))
+              (register-word word req-id))))
 
         (set! write-back-count (+ write-back-count 1))
 
