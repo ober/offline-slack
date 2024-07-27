@@ -213,6 +213,11 @@
         (unless (or .?user .?sub_type .?client_msg_id .?username .?bot_id)
           (displayln (hash->string msg)))
 
+        (when .?text
+          (let ((words (pregexp-split "[ \t\n\r]+" .text)))
+            (for (word words)
+              (register-word word message))))
+
         (set! write-back-count (+ write-back-count 1))
 
         ))))
