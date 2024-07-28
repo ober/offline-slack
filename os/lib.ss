@@ -230,40 +230,6 @@
   (let ((entries (lookup-keys partial)))
     entries))
 
-;; (def (index-words)
-;;   (let ((channels (lookup-keys (format "ch~a" delim))))
-;;     (displayln "done fetching messages")
-;;     (for (channel channels)
-;;       (let* ((ch (nth 1 (pregexp-split delim channel)))
-;;              (pat (format "w~aXYZZ~a~a~a"
-;;                           delim
-;;                           delim
-;;                           ch
-;;                           delim))
-;;              (keys (keylike pat))
-;;              (count (length keys)))
-;;         (unless (= count 0)
-;;           (displayln "skipping " channel))
-;;         (when (= count 0)
-;;           (displayln "doing " channel " count is " count)
-;;           (let ((messages (lookup-keys
-;;                            (format
-;;                             "m~a~a~a"
-;;                             delim
-;;                             ch
-;;                             delim))))
-;;             (displayln "messages: " (length messages) " for channel: " channel)
-;;             (db-write)
-;;             (db-batch (format "w~aXYZZ~a~a~a" delim delim ch delim) #t)
-;;             (for (message messages)
-;;               (let ((value (db-get message)))
-;;                 (when (hash-table? value)
-;;                   (let-hash value
-;;                     (when .?text
-;;                       (let ((words (pregexp-split "[ \t\n\r]+" .text)))
-;;                         (for (word words)
-;;                           (register-word word message))))))))))))))
-
 (def (register-word word req-id)
   (let* ((key (format "w~a~a~a~a" delim word delim req-id)))
     (db-batch key #t)))
@@ -421,21 +387,6 @@
                           ] outs))))
     (style-output outs "org-mode")))
 
-;; (def (index-channels)
-;;   (let ((index (format "channel~aindex" delim))
-;;         (results []))
-;;     (db-rm index)
-;;     (let ((entries
-;;            (sort-uniq-reverse
-;;             (uniq-by-nth-prefix (format "ch~a" delim) 1))))
-;;       (for (entry entries)
-;;         (let ((name (db-get (format "ch~a~a" delim entry))))
-;;           (when name
-;;             (set! results (cons name results))))))
-;;     (if (length>n? results 0)
-;;       (db-put index results)
-;;       (displayln "Index channels found nothing"))))
-
 (def (list-channels-hashes)
   (let* ((key (format "ch~a" delim))
          (channels (lookup-keys key))
@@ -489,4 +440,5 @@
     (style-output outs "org-mode")))
 
 (def (date-parse-epoch epoch)
-  (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" epoch))))))
+  (date->string (epoch->date (nth 0 (pregexp-split "\\." (format "~a" epoch))))
+                "~Y-~m-~d ~H:~M:~S"))
