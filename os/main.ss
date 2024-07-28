@@ -63,9 +63,6 @@
   (def channels
     (command 'channels help: "list channels"))
 
-  (def iw
-    (command 'iw help: "index words"))
-
   (def ls
     (command 'ls help: "list all records"))
 
@@ -81,7 +78,6 @@
                     channels
                     cs
                     dbg
-                    iw
                     load
                     ls
                     kl
@@ -105,8 +101,6 @@
        (cs))
       ((teams)
        (lt))
-      ((iw)
-       (index-words))
       ((ls)
        (list-records))
       ((load)
